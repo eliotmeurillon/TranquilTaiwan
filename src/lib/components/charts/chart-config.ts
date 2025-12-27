@@ -13,7 +13,8 @@ import {
 	Filler,
 	BarElement,
 	BarController,
-	ArcElement
+	ArcElement,
+	DoughnutController
 } from 'chart.js';
 
 // Register Chart.js components
@@ -31,7 +32,8 @@ ChartJS.register(
 	Filler,
 	BarElement,
 	BarController,
-	ArcElement
+	ArcElement,
+	DoughnutController
 );
 
 // Configure default font and text color to match UI

@@ -4,9 +4,6 @@
 	import { browser } from '$app/environment';
 	import * as m from '$lib/paraglide/messages';
 	import DynamicHeatmapLayer from './DynamicHeatmapLayer.svelte';
-	import { Layers } from 'lucide-svelte';
-	import * as Popover from '$lib/components/ui/popover';
-	import { Button } from '$lib/components/ui/button';
 
 	// Define PointOfInterest type
 	export type PointOfInterest = {
@@ -49,8 +46,15 @@
 		airQualityScore = 0,
 		zoom = 15,
 		detailedData,
-		pointsOfInterest = []
-	}: Props = $props();
+		pointsOfInterest = [],
+		noiseVisible = $bindable(true), // Heatmap layer (Nuisances Sonores)
+		airQualityVisible = $bindable(false), // Air quality layer (Qualité de l'Air)
+		safetyPointsVisible = $bindable(false) // Safety points layer (Points de Sécurité)
+	}: Props & {
+		noiseVisible?: boolean;
+		airQualityVisible?: boolean;
+		safetyPointsVisible?: boolean;
+	} = $props();
 
 	let mapContainer: HTMLDivElement;
 	let map: any = $state(null);
@@ -58,13 +62,10 @@
 	let layersControl: any = $state(null);
 	let nuisanceLayer: any = $state(null);
 	let amenityLayer: any = $state(null);
+	let safetyPointsLayer: any = $state(null);
+	let airQualityLayer: any = $state(null);
 	let circle: any = $state(null);
-	let showLayersPopover = $state(false);
-	
-	// Reactive layer visibility states
-	let nuisanceVisible = $state(true);
-	let amenityVisible = $state(true);
-	let circleVisible = $state(true);
+	let heatmapLayer: any = $state(null);
 	
 	// Icon SVG paths
 	const ICONS = {
@@ -166,14 +167,16 @@
 			radius: 500
 		}).addTo(map);
 
-		// Layer Groups
-		nuisanceLayer = L.layerGroup().addTo(map);
-		amenityLayer = L.layerGroup().addTo(map);
+		// Layer Groups - separated by category
+		nuisanceLayer = L.layerGroup().addTo(map); // Temples and factories (noise sources)
+		amenityLayer = L.layerGroup().addTo(map); // YouBike, transport, trash
+		safetyPointsLayer = L.layerGroup(); // Accident hotspots only (not added by default)
+		airQualityLayer = L.layerGroup(); // Air quality markers (placeholder for now, not added by default)
 		
 		// Initialize visibility states
-		nuisanceVisible = true;
-		amenityVisible = true;
-		circleVisible = true;
+		noiseVisible = true; // Heatmap visible by default (Nuisances Sonores)
+		airQualityVisible = false; // Air quality hidden by default (Qualité de l'Air)
+		safetyPointsVisible = false; // Safety points hidden by default (Points de Sécurité)
 
 		// Helper to create custom marker
 		const createCustomMarker = (poi: PointOfInterest) => {
@@ -234,26 +237,42 @@
 			return marker;
 		};
 
-		// 3. Populate Layers
+		// 3. Populate Layers - separate by category
 		pointsOfInterest.forEach(poi => {
 			const marker = createCustomMarker(poi);
-			if (['temple', 'accident', 'factory'].includes(poi.type)) {
+			if (poi.type === 'accident') {
+				// Safety points go to their own layer
+				marker.addTo(safetyPointsLayer);
+			} else if (['temple', 'factory'].includes(poi.type)) {
+				// Noise sources (temples, factories) go to nuisance layer
 				marker.addTo(nuisanceLayer);
 			} else {
+				// Amenities (youbike, transport, trash)
 				marker.addTo(amenityLayer);
 			}
 		});
 
-		// 4. Layers Control - Store reference but don't add to map (we'll use custom button)
-		const overlayMaps = {
-			"Nuisances & Dangers ⚠️": nuisanceLayer,
-			"Amenities 🚲": amenityLayer,
-			"500m Radius": circle
-		};
-
-		// Create layers control but don't add it to map - we'll use custom UI
-		layersControl = L.control.layers(null, overlayMaps, { position: 'topright' });
-		// Don't add to map - we'll use custom button instead
+		// Store heatmap layer reference for visibility control
+		// The DynamicHeatmapLayer component will handle its own visibility
+	});
+	
+	// React to layer visibility changes via bindable props
+	$effect(() => {
+		if (!map) return;
+		
+		// Air Quality Layer
+		if (airQualityVisible && airQualityLayer && !map.hasLayer(airQualityLayer)) {
+			map.addLayer(airQualityLayer);
+		} else if (!airQualityVisible && airQualityLayer && map.hasLayer(airQualityLayer)) {
+			map.removeLayer(airQualityLayer);
+		}
+		
+		// Safety Points Layer
+		if (safetyPointsVisible && safetyPointsLayer && !map.hasLayer(safetyPointsLayer)) {
+			map.addLayer(safetyPointsLayer);
+		} else if (!safetyPointsVisible && safetyPointsLayer && map.hasLayer(safetyPointsLayer)) {
+			map.removeLayer(safetyPointsLayer);
+		}
 	});
 
 	onDestroy(() => {
@@ -271,6 +290,7 @@
 			{map} 
 			leaflet={L} 
 			points={heatmapPoints}
+			isVisible={noiseVisible}
 			gradient={{
 				0.4: 'blue',
 				0.6: 'cyan',
@@ -279,76 +299,6 @@
 				1.0: 'red'
 			}}
 		/>
-	{/if}
-	
-	<!-- Custom Layers Control Button -->
-	{#if map && L && nuisanceLayer && amenityLayer && circle}
-		<div class="absolute top-24 right-4 z-[40] pointer-events-auto">
-			<Popover.Root bind:open={showLayersPopover}>
-				<Popover.Trigger asChild>
-					{#snippet child(builder)}
-						<Button
-							{...builder}
-							variant="outline"
-							size="icon"
-							class="bg-white/90 backdrop-blur-md shadow-lg hover:bg-white rounded-full border border-slate-200/50"
-							aria-label="Toggle layers"
-						>
-							<Layers class="w-5 h-5 text-slate-700" strokeWidth={1.5} />
-						</Button>
-					{/snippet}
-				</Popover.Trigger>
-				<Popover.Content class="w-64 p-2 bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/50 rounded-xl">
-					<div class="space-y-2">
-						<label class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={nuisanceVisible}
-								onchange={() => {
-									if (nuisanceVisible && nuisanceLayer) {
-										map.addLayer(nuisanceLayer);
-									} else if (!nuisanceVisible && nuisanceLayer) {
-										map.removeLayer(nuisanceLayer);
-									}
-								}}
-								class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-							/>
-							<span class="text-sm font-medium text-slate-700">Nuisances & Dangers ⚠️</span>
-						</label>
-						<label class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={amenityVisible}
-								onchange={() => {
-									if (amenityVisible && amenityLayer) {
-										map.addLayer(amenityLayer);
-									} else if (!amenityVisible && amenityLayer) {
-										map.removeLayer(amenityLayer);
-									}
-								}}
-								class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-							/>
-							<span class="text-sm font-medium text-slate-700">Amenities 🚲</span>
-						</label>
-						<label class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={circleVisible}
-								onchange={() => {
-									if (circleVisible && circle) {
-										map.addLayer(circle);
-									} else if (!circleVisible && circle) {
-										map.removeLayer(circle);
-									}
-								}}
-								class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-							/>
-							<span class="text-sm font-medium text-slate-700">500m Radius</span>
-						</label>
-					</div>
-				</Popover.Content>
-			</Popover.Root>
-		</div>
 	{/if}
 </div>
 

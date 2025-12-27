@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import LeafletMap from '$lib/components/LeafletMap.svelte';
+	import MapLayerToggle from '$lib/components/MapLayerToggle.svelte';
 	import NativeAdCard from '$lib/components/NativeAdCard.svelte';
 	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 	import InfoHint from '$lib/components/InfoHint.svelte';
@@ -39,7 +40,8 @@
 		Bug,
 		Search,
 		TrainFront,
-		Store
+		Store,
+		Building
 	} from "lucide-svelte";
 
 	// Define PointOfInterest type locally
@@ -78,6 +80,11 @@
 	// Local UI state
 	let address = $state('');
 	let loading = $state(false);
+	
+	// Map layer visibility states (bound to LeafletMap)
+	let noiseVisible = $state(true);
+	let airQualityVisible = $state(false);
+	let safetyPointsVisible = $state(false);
 	
 	// Sync address with URL parameter when data changes
 	$effect(() => {
@@ -424,9 +431,22 @@
 				zoom={15}
 				detailedData={scoreData.detailedData}
 				pointsOfInterest={pointsOfInterest}
+				bind:noiseVisible
+				bind:airQualityVisible
+				bind:safetyPointsVisible
 			/>
 			<!-- Gradient Overlay -->
 			<div class="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none"></div>
+			
+			<!-- MapLayerToggle - Moved inside map container but with high z-index and absolute positioning -->
+			<MapLayerToggle
+				{noiseVisible}
+				{airQualityVisible}
+				{safetyPointsVisible}
+				onNoiseChange={(visible: boolean) => noiseVisible = visible}
+				onAirQualityChange={(visible: boolean) => airQualityVisible = visible}
+				onSafetyPointsChange={(visible: boolean) => safetyPointsVisible = visible}
+			/>
 
 			<!-- Floating Score Card (Absolute over map) -->
 			<div class="absolute -bottom-20 left-4 right-4 z-20 max-w-4xl mx-auto">
@@ -494,21 +514,23 @@
 				
 				<!-- Noise Section -->
 				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
-					<Card.Header class="pb-4">
+					<Card.Header class="pb-4 relative">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-3">
 								<div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
 									<Volume2 class="w-5 h-5" strokeWidth={1.5} />
 								</div>
 								<Card.Title>{m.report_noise_title()}</Card.Title>
-								<InfoHint 
-									title="Comment lire les dB ?" 
-									description="40dB = Bibliothèque. 60dB = Conversation. 80dB = Trafic intense. Au-delà de 65dB, le sommeil peut être perturbé."
-								/>
 							</div>
 							<Badge variant="outline" class="font-bold text-sm bg-slate-50">
 								{Math.round(scoreData.detailedData?.noise?.level || 0)} dB
 							</Badge>
+						</div>
+						<div class="absolute top-6 right-6">
+							<InfoHint 
+								title="Comment lire les dB ?" 
+								description="40dB = Bibliothèque. 60dB = Conversation. 80dB = Trafic intense. Au-delà de 65dB, le sommeil peut être perturbé."
+							/>
 						</div>
 					</Card.Header>
 					
@@ -571,83 +593,81 @@
 
 				<!-- Environment & Risks Section -->
 				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
-					<Card.Header class="pb-4">
+					<Card.Header class="pb-4 relative">
 						<div class="flex items-center gap-3">
 							<div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
 								<Wind class="w-5 h-5" strokeWidth={1.5} />
 							</div>
 							<Card.Title>{m.report_env_title()}</Card.Title>
 						</div>
+						<div class="absolute top-6 right-6">
+							<InfoHint 
+								title="Indice de Qualité de l'Air" 
+								description="En dessous de 50 : Excellent. Au-dessus de 100 : Risqué pour les asthmatiques et enfants."
+							/>
+						</div>
 					</Card.Header>
 
 					<Card.Content>
 						{#if scoreData.detailedData?.airQuality}
 							{@const airData = scoreData.detailedData.airQuality}
-							<div class="flex items-center gap-6 mb-6">
-								<!-- Big AQI Badge -->
-								<div class="flex-shrink-0 w-20 h-20 rounded-2xl {airData.aqi <= 50 ? 'bg-emerald-50 text-emerald-600' : airData.aqi <= 100 ? 'bg-yellow-50 text-yellow-600' : 'bg-orange-50 text-orange-600'} flex flex-col items-center justify-center p-2 border border-black/5 relative">
-									<div class="flex items-center gap-1">
-										<span class="text-[10px] font-bold uppercase opacity-70 mb-0.5">AQI</span>
-										<div class="absolute -top-1 -right-1">
-											<InfoHint 
-												title="Indice de Qualité de l'Air" 
-												description="En dessous de 50 : Excellent. Au-dessus de 100 : Risqué pour les asthmatiques et enfants."
-											/>
-										</div>
-									</div>
-									<span class="text-3xl font-bold tracking-tighter">{airData.aqi}</span>
+							{@const isIndus = scoreData.detailedData?.zoning?.adjacentIndustrial}
+							{@const zoningLabel = isIndus ? 'Industrial Nearby' : scoreData.detailedData?.zoning?.adjacentHighIntensityCommercial ? 'Commercial Area' : m.zoning_residential()}
+							
+							{@const aqiStyles = airData.aqi <= 50 
+								? { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', label: 'Good' }
+								: airData.aqi <= 100 
+								? { bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-200', label: 'Moderate' }
+								: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', label: 'Unhealthy' }
+							}
+							
+							<div class="grid grid-cols-2 gap-4 h-full">
+								<!-- Left Column: Main Indicator -->
+								<div class="flex flex-col items-center justify-center p-4 rounded-3xl {aqiStyles.bg} h-full min-h-[160px]">
+									<span class="text-xs uppercase font-bold text-slate-500 mb-2 tracking-wider">Air Quality Index</span>
+									<span class="text-5xl font-bold {aqiStyles.text} mb-2">{airData.aqi}</span>
+									<Badge variant="outline" class="bg-white/80 {aqiStyles.border} {aqiStyles.text} shadow-sm px-3 py-1 text-xs font-semibold">
+										{aqiStyles.label}
+									</Badge>
 								</div>
-								
-								<div class="flex-1 space-y-1">
-									<div class="font-bold text-lg text-slate-900 leading-tight">
-										{airData.aqi <= 50 ? 'Good Air' : airData.aqi <= 100 ? 'Moderate' : airData.aqi <= 150 ? 'Unhealthy' : 'Very Unhealthy'}
-									</div>
-									{#if airData.pm25}
-										<div class="text-xs font-medium text-slate-500 uppercase tracking-wider">
-											PM2.5: <span class="text-slate-700 font-semibold">{airData.pm25} μg/m³</span>
-										</div>
-									{/if}
-								</div>
-							</div>
 
-							<div class="space-y-3">
-								<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-									<div class="p-2 rounded-full bg-white text-slate-600 shadow-sm">
-										<Bug class="w-4 h-4" strokeWidth={1.5} />
-									</div>
-									<div class="flex-1">
+								<!-- Right Column: Details List -->
+								<div class="flex flex-col justify-between py-1 gap-4">
+									
+									<!-- PM2.5 -->
+									<div class="space-y-1.5">
 										<div class="flex items-center gap-2">
-											<p class="text-sm font-medium text-slate-900">Dengue Risk</p>
-											<InfoHint 
-												title="Risque Épidémique" 
-												description="Basé sur l'historique des foyers de moustiques du CDC Taïwan sur les 12 derniers mois."
-											/>
+											<Wind class="w-4 h-4 text-slate-400" strokeWidth={2} />
+											<span class="text-sm font-medium text-slate-700">PM2.5</span>
+											<span class="ml-auto text-sm font-bold text-slate-900">{airData.pm25} µg/m³</span>
 										</div>
-										<p class="text-xs text-slate-500">{airData.dengueRisk ? m.risk_high() : m.risk_none()}</p>
+										<Progress value={Math.min((airData.pm25 / 50) * 100, 100)} class="h-1.5 bg-slate-100" />
 									</div>
-									{#if airData.dengueRisk}
-										<AlertCircle class="w-4 h-4 text-orange-500" strokeWidth={1.5} />
-									{/if}
-								</div>
 
-								{#if scoreData.detailedData?.zoning}
-									{@const zoningData = scoreData.detailedData.zoning}
-									{@const isIndus = zoningData.adjacentIndustrial}
-									<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-										<div class="p-2 rounded-full bg-white text-slate-600 shadow-sm">
-											<Factory class="w-4 h-4" strokeWidth={1.5} />
+									<!-- Dengue -->
+									<div class="flex items-center justify-between">
+										<div class="flex items-center gap-2">
+											<Bug class="w-4 h-4 text-slate-400" strokeWidth={2} />
+											<span class="text-sm font-medium text-slate-700">Dengue</span>
 										</div>
-										<div class="flex-1">
-											<p class="text-sm font-medium text-slate-900">Zoning</p>
-											<p class="text-xs text-slate-500">
-												{isIndus ? 'Industrial Nearby' : zoningData.adjacentHighIntensityCommercial ? 'Commercial Area' : m.zoning_residential()}
-											</p>
-										</div>
-										{#if isIndus}
-											<AlertCircle class="w-4 h-4 text-orange-500" strokeWidth={1.5} />
+										{#if airData.dengueRisk}
+											<Badge variant="destructive" class="text-[10px] px-2 py-0.5 h-6">Risk</Badge>
+										{:else}
+											<Badge variant="outline" class="text-[10px] px-2 py-0.5 h-6 bg-emerald-50 text-emerald-700 border-emerald-200">Safe</Badge>
 										{/if}
 									</div>
-								{/if}
+
+									<!-- Zoning -->
+									<div class="flex items-center justify-between">
+										<div class="flex items-center gap-2">
+											<Building class="w-4 h-4 text-slate-400" strokeWidth={2} />
+											<span class="text-sm font-medium text-slate-700">Zoning</span>
+										</div>
+										<span class="text-xs font-medium text-slate-600 text-right truncate max-w-[100px]" title={zoningLabel}>
+											{zoningLabel}
+										</span>
+									</div>
+								</div>
 							</div>
 						{:else}
 							<p class="text-sm text-slate-500">Air quality data not available</p>
@@ -657,7 +677,7 @@
 
 				<!-- Safety Section -->
 				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
-					<Card.Header class="pb-4">
+					<Card.Header class="pb-4 relative">
 						<div class="flex items-center gap-3">
 							<div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
 								<Shield class="w-5 h-5" strokeWidth={1.5} />
@@ -704,7 +724,7 @@
 					{@const walkScore = Math.min(100, Math.round(convenienceData.publicTransportScore * 0.4 + (convenienceData.youbikeStations > 0 ? 30 : 0) + (convenienceData.trashCollectionPoints > 0 ? 20 : 0) + 10))}
 					{@const walkScoreLabel = walkScore >= 90 ? 'Walker Paradise' : walkScore >= 70 ? 'Very Walkable' : walkScore >= 50 ? 'Somewhat Walkable' : 'Car Dependent'}
 					<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
-						<Card.Header class="pb-4">
+						<Card.Header class="pb-4 relative">
 							<div class="flex items-center justify-between mb-4">
 								<div class="flex items-center gap-3">
 									<div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
