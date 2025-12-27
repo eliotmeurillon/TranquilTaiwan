@@ -86,7 +86,7 @@
 							font: {
 								family: 'Inter, system-ui, -apple-system, sans-serif',
 								size: 12,
-								weight: '500'
+								weight: 500
 							},
 							color: '#64748b',
 							padding: 15,
@@ -101,7 +101,7 @@
 						titleFont: {
 							family: 'Inter, system-ui, -apple-system, sans-serif',
 							size: 12,
-							weight: '600'
+							weight: 600
 						},
 						bodyFont: {
 							family: 'Inter, system-ui, -apple-system, sans-serif',
@@ -129,7 +129,7 @@
 							font: {
 								family: 'Inter, system-ui, -apple-system, sans-serif',
 								size: 11,
-								weight: '500'
+								weight: 500
 							},
 							color: '#64748b' // Slate-500
 						},

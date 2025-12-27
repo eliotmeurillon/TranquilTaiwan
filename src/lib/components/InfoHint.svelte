@@ -10,7 +10,7 @@
     <HelpCircle class="w-4 h-4 text-slate-300 hover:text-emerald-600 transition-colors cursor-pointer" />
     <span class="sr-only">Info</span>
   </Popover.Trigger>
-  <Popover.Content>
+  <Popover.Content class="">
     <div class="space-y-2">
       <h4 class="font-medium leading-none text-slate-900">{title}</h4>
       <p class="text-sm text-slate-500">

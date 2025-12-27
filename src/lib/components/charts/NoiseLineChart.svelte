@@ -91,14 +91,17 @@
 						titleFont: {
 							family: 'Inter, system-ui, -apple-system, sans-serif',
 							size: 12,
-							weight: '600'
+							weight: 600
 						},
 						bodyFont: {
 							family: 'Inter, system-ui, -apple-system, sans-serif',
 							size: 14
 						},
 						callbacks: {
-							label: (context) => `${context.parsed.y.toFixed(0)} dB`
+							label: (context) => {
+								const value = context.parsed.y;
+								return value !== null && value !== undefined ? `${value.toFixed(0)} dB` : '';
+							}
 						}
 					}
 				},
@@ -121,7 +124,6 @@
 						max: 100,
 						grid: {
 							display: true,
-							borderDash: [4, 4], // Dotted horizontal grid
 							color: 'rgba(100, 116, 139, 0.1)' // Slate-500 with low opacity
 						},
 						ticks: {

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Popover as BitsPopover } from "bits-ui";
 
-	let { ...restProps } = $props();
+	let { open = $bindable(false), ...restProps } = $props();
 </script>
 
-<BitsPopover.Root {...restProps}>
+<BitsPopover.Root bind:open {...restProps}>
 	{@render restProps.children?.()}
 </BitsPopover.Root>
 

@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { Popover as BitsPopover } from "bits-ui";
 
-	let { ...restProps } = $props();
+	let { children, ...restProps } = $props();
 </script>
 
 <BitsPopover.Trigger {...restProps}>
-	{@render restProps.children?.()}
+	{#snippet child(props)}
+		{@render children?.()}
+	{/snippet}
 </BitsPopover.Trigger>
 

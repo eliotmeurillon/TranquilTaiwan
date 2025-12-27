@@ -4,6 +4,9 @@
 	import { browser } from '$app/environment';
 	import * as m from '$lib/paraglide/messages';
 	import DynamicHeatmapLayer from './DynamicHeatmapLayer.svelte';
+	import { Layers } from 'lucide-svelte';
+	import * as Popover from '$lib/components/ui/popover';
+	import { Button } from '$lib/components/ui/button';
 
 	// Define PointOfInterest type
 	export type PointOfInterest = {
@@ -52,6 +55,16 @@
 	let mapContainer: HTMLDivElement;
 	let map: any = $state(null);
 	let L: any = $state(null);
+	let layersControl: any = $state(null);
+	let nuisanceLayer: any = $state(null);
+	let amenityLayer: any = $state(null);
+	let circle: any = $state(null);
+	let showLayersPopover = $state(false);
+	
+	// Reactive layer visibility states
+	let nuisanceVisible = $state(true);
+	let amenityVisible = $state(true);
+	let circleVisible = $state(true);
 	
 	// Icon SVG paths
 	const ICONS = {
@@ -129,7 +142,7 @@
 			.openPopup();
 
 		// 2. 500m Radius Circle
-		const circle = L.circle([latitude, longitude], {
+		circle = L.circle([latitude, longitude], {
 			color: '#94a3b8', // Slate-400
 			fillColor: '#94a3b8',
 			fillOpacity: 0.05,
@@ -139,8 +152,13 @@
 		}).addTo(map);
 
 		// Layer Groups
-		const nuisanceLayer = L.layerGroup().addTo(map);
-		const amenityLayer = L.layerGroup().addTo(map);
+		nuisanceLayer = L.layerGroup().addTo(map);
+		amenityLayer = L.layerGroup().addTo(map);
+		
+		// Initialize visibility states
+		nuisanceVisible = true;
+		amenityVisible = true;
+		circleVisible = true;
 
 		// Helper to create custom marker
 		const createCustomMarker = (poi: PointOfInterest) => {
@@ -211,14 +229,16 @@
 			}
 		});
 
-		// 4. Layers Control
+		// 4. Layers Control - Store reference but don't add to map (we'll use custom button)
 		const overlayMaps = {
 			"Nuisances & Dangers ⚠️": nuisanceLayer,
 			"Amenities 🚲": amenityLayer,
 			"500m Radius": circle
 		};
 
-		L.control.layers(null, overlayMaps, { position: 'topright' }).addTo(map);
+		// Create layers control but don't add it to map - we'll use custom UI
+		layersControl = L.control.layers(null, overlayMaps, { position: 'topright' });
+		// Don't add to map - we'll use custom button instead
 	});
 
 	onDestroy(() => {
@@ -245,6 +265,76 @@
 			}}
 		/>
 	{/if}
+	
+	<!-- Custom Layers Control Button -->
+	{#if map && L && nuisanceLayer && amenityLayer && circle}
+		<div class="absolute top-24 right-4 z-[40] pointer-events-auto">
+			<Popover.Root bind:open={showLayersPopover}>
+				<Popover.Trigger asChild>
+					{#snippet child(builder)}
+						<Button
+							{...builder}
+							variant="outline"
+							size="icon"
+							class="bg-white/90 backdrop-blur-md shadow-lg hover:bg-white rounded-full border border-slate-200/50"
+							aria-label="Toggle layers"
+						>
+							<Layers class="w-5 h-5 text-slate-700" strokeWidth={1.5} />
+						</Button>
+					{/snippet}
+				</Popover.Trigger>
+				<Popover.Content class="w-64 p-2 bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/50 rounded-xl">
+					<div class="space-y-2">
+						<label class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={nuisanceVisible}
+								onchange={() => {
+									if (nuisanceVisible && nuisanceLayer) {
+										map.addLayer(nuisanceLayer);
+									} else if (!nuisanceVisible && nuisanceLayer) {
+										map.removeLayer(nuisanceLayer);
+									}
+								}}
+								class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+							/>
+							<span class="text-sm font-medium text-slate-700">Nuisances & Dangers ⚠️</span>
+						</label>
+						<label class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={amenityVisible}
+								onchange={() => {
+									if (amenityVisible && amenityLayer) {
+										map.addLayer(amenityLayer);
+									} else if (!amenityVisible && amenityLayer) {
+										map.removeLayer(amenityLayer);
+									}
+								}}
+								class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+							/>
+							<span class="text-sm font-medium text-slate-700">Amenities 🚲</span>
+						</label>
+						<label class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={circleVisible}
+								onchange={() => {
+									if (circleVisible && circle) {
+										map.addLayer(circle);
+									} else if (!circleVisible && circle) {
+										map.removeLayer(circle);
+									}
+								}}
+								class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+							/>
+							<span class="text-sm font-medium text-slate-700">500m Radius</span>
+						</label>
+					</div>
+				</Popover.Content>
+			</Popover.Root>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -265,7 +355,12 @@
 	}
 
 	:global(.leaflet-bottom.leaflet-right) {
-		bottom: 80px !important; /* Move zoom controls up to avoid floating card */
+		bottom: 140px !important; /* Remonte franchement au-dessus du dégradé */
 		right: 20px !important;
+	}
+	
+	/* Hide default layers control if it somehow appears */
+	:global(.leaflet-top.leaflet-right .leaflet-control-layers) {
+		display: none !important;
 	}
 </style>

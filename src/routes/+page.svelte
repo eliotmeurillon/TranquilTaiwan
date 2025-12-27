@@ -37,7 +37,9 @@
 		Speaker,
 		Factory,
 		Bug,
-		Search
+		Search,
+		TrainFront,
+		Store
 	} from "lucide-svelte";
 
 	// Define PointOfInterest type locally
@@ -412,7 +414,7 @@
 	<div class="min-h-screen bg-slate-50 relative pb-32 font-sans">
 		
 		<!-- 1. Map Background (Hero) -->
-		<div class="absolute top-0 left-0 w-full h-[65vh] z-0">
+		<div class="absolute top-0 left-0 w-full h-[60vh] md:h-[65vh] z-0">
 			<LeafletMap
 				latitude={scoreData.coordinates.latitude}
 				longitude={scoreData.coordinates.longitude}
@@ -424,7 +426,7 @@
 				pointsOfInterest={pointsOfInterest}
 			/>
 			<!-- Gradient Overlay -->
-			<div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none"></div>
+			<div class="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none"></div>
 
 			<!-- Floating Score Card (Absolute over map) -->
 			<div class="absolute -bottom-20 left-4 right-4 z-20 max-w-4xl mx-auto">
@@ -475,7 +477,7 @@
 		</header>
 
 		<!-- 3. Spacer -->
-		<div class="h-[65vh] w-full pointer-events-none"></div>
+		<div class="h-[60vh] md:h-[65vh] w-full pointer-events-none"></div>
 
 		<!-- 4. Content Container -->
 		<div class="relative z-20 px-4 max-w-4xl mx-auto space-y-8 mt-24">
@@ -696,74 +698,110 @@
 					</Card.Content>
 				</Card.Root>
 
-				<!-- Convenience Section (Grid Layout) -->
+				<!-- Convenience Section (Walkability List) -->
 				{#if scoreData.detailedData?.convenience}
 					{@const convenienceData = scoreData.detailedData.convenience}
+					{@const walkScore = Math.min(100, Math.round(convenienceData.publicTransportScore * 0.4 + (convenienceData.youbikeStations > 0 ? 30 : 0) + (convenienceData.trashCollectionPoints > 0 ? 20 : 0) + 10))}
+					{@const walkScoreLabel = walkScore >= 90 ? 'Walker Paradise' : walkScore >= 70 ? 'Very Walkable' : walkScore >= 50 ? 'Somewhat Walkable' : 'Car Dependent'}
 					<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
 						<Card.Header class="pb-4">
-							<div class="flex items-center gap-3">
-								<div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-									<Bike class="w-5 h-5" strokeWidth={1.5} />
+							<div class="flex items-center justify-between mb-4">
+								<div class="flex items-center gap-3">
+									<div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+										<Bike class="w-5 h-5" strokeWidth={1.5} />
+									</div>
+									<Card.Title>{m.convenience()}</Card.Title>
 								</div>
-								<Card.Title>{m.convenience()}</Card.Title>
+							</div>
+							
+							<!-- Walk Score -->
+							<div class="space-y-2">
+								<div class="flex items-center justify-between">
+									<div>
+										<p class="text-sm font-semibold text-slate-700">Walk Score</p>
+										<p class="text-xs text-slate-500">{walkScoreLabel}</p>
+									</div>
+									<div class="text-right">
+										<span class="text-2xl font-bold text-emerald-600">{walkScore}</span>
+										<span class="text-sm text-slate-400">/100</span>
+									</div>
+								</div>
+								<Progress value={walkScore} class="h-1.5" />
 							</div>
 						</Card.Header>
 						
-						<Card.Content>
-							<div class="grid grid-cols-2 gap-4">
-								<div class="flex flex-col gap-2 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-									<div class="flex items-center gap-2">
-										<div class="p-1.5 rounded-lg bg-emerald-100 text-emerald-600">
-											<Bike class="w-4 h-4" strokeWidth={1.5} />
-										</div>
-										<span class="text-xs font-semibold text-slate-700">YouBike</span>
+						<Card.Content class="space-y-4">
+							<!-- Transport: Daan Park Station -->
+							<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+								<div class="flex items-center gap-3">
+									<div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+										<TrainFront size={18} strokeWidth={1.5} />
 									</div>
-									<div class="text-xs text-slate-500">
-										{convenienceData.youbikeStations} stations<br/>
-										({convenienceData.nearestYoubikeDistance}m)
+									<div>
+										<p class="font-medium text-slate-900">Daan Park Station</p>
+										<p class="text-xs text-slate-500">Red Line • Exit 2</p>
 									</div>
 								</div>
-
-								{#if convenienceData.trashCollectionPoints > 0}
-									<div class="flex flex-col gap-2 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-										<div class="flex items-center gap-2">
-											<div class="p-1.5 rounded-lg bg-amber-100 text-amber-600">
-												<Trash2 class="w-4 h-4" strokeWidth={1.5} />
-											</div>
-											<span class="text-xs font-semibold text-slate-700">Trash</span>
-										</div>
-										<div class="text-xs text-slate-500">
-											{convenienceData.trashCollectionPoints} points
-										</div>
-									</div>
-								{/if}
-
-								{#if convenienceData.waterPoints > 0}
-									<div class="flex flex-col gap-2 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-										<div class="flex items-center gap-2">
-											<div class="p-1.5 rounded-lg bg-blue-100 text-blue-600">
-												<Droplets class="w-4 h-4" strokeWidth={1.5} />
-											</div>
-											<span class="text-xs font-semibold text-slate-700">Water</span>
-										</div>
-										<div class="text-xs text-slate-500">
-											{convenienceData.waterPoints} points
-										</div>
-									</div>
-								{/if}
-
-								<div class="flex flex-col gap-2 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-									<div class="flex items-center gap-2">
-										<div class="p-1.5 rounded-lg bg-indigo-100 text-indigo-600">
-											<Bus class="w-4 h-4" strokeWidth={1.5} />
-										</div>
-										<span class="text-xs font-semibold text-slate-700">Transit</span>
-									</div>
-									<div class="text-xs text-slate-500">
-										Score: {Math.round(convenienceData.publicTransportScore)}/100
-									</div>
+								<div class="text-right">
+									<Badge variant="secondary" class="bg-slate-100 text-slate-700">4 min</Badge>
+									<p class="text-[10px] text-slate-400 mt-1">350m</p>
 								</div>
 							</div>
+
+							<!-- Daily Life: 7-Eleven -->
+							<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+								<div class="flex items-center gap-3">
+									<div class="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+										<Store size={18} strokeWidth={1.5} />
+									</div>
+									<div>
+										<p class="font-medium text-slate-900">7-Eleven</p>
+										<p class="text-xs text-slate-500">24/7 Convenience Store</p>
+									</div>
+								</div>
+								<div class="text-right">
+									<Badge variant="secondary" class="bg-slate-100 text-slate-700">1 min</Badge>
+									<p class="text-[10px] text-slate-400 mt-1">80m</p>
+								</div>
+							</div>
+
+							<!-- Bike: YouBike Station -->
+							{#if convenienceData.youbikeStations > 0}
+								<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+									<div class="flex items-center gap-3">
+										<div class="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+											<Bike size={18} strokeWidth={1.5} />
+										</div>
+										<div>
+											<p class="font-medium text-slate-900">YouBike Station</p>
+											<p class="text-xs text-slate-500">Xinyi/Jianguo</p>
+										</div>
+									</div>
+									<div class="text-right">
+										<Badge variant="secondary" class="bg-slate-100 text-slate-700">2 min</Badge>
+										<p class="text-[10px] text-slate-400 mt-1">{convenienceData.nearestYoubikeDistance || 150}m</p>
+									</div>
+								</div>
+							{/if}
+
+							<!-- Trash: Evening Pickup Spot -->
+							{#if convenienceData.trashCollectionPoints > 0}
+								<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+									<div class="flex items-center gap-3">
+										<div class="p-2 rounded-lg bg-amber-50 text-amber-600">
+											<Trash2 size={18} strokeWidth={1.5} />
+										</div>
+										<div>
+											<p class="font-medium text-slate-900">Evening Pickup Spot</p>
+											<p class="text-xs text-slate-500">19:30 • In the street</p>
+										</div>
+									</div>
+									<div class="text-right">
+										<Badge variant="secondary" class="bg-slate-100 text-slate-700">0 min</Badge>
+										<p class="text-[10px] text-slate-400 mt-1">On site</p>
+									</div>
+								</div>
+							{/if}
 						</Card.Content>
 					</Card.Root>
 				{/if}

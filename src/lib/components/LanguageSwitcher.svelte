@@ -47,16 +47,9 @@
 </script>
 
 <DropdownMenu.Root>
-	<DropdownMenu.Trigger>
-		{#snippet child({ props })}
-			<button
-				{...props}
-				class="h-9 w-9 rounded-full bg-white/70 backdrop-blur-md shadow-sm hover:bg-white text-slate-600 inline-flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-			>
-				<Globe class="h-5 w-5" strokeWidth={1.5} />
-				<span class="sr-only">{m.language_switch()}</span>
-			</button>
-		{/snippet}
+	<DropdownMenu.Trigger class="h-9 w-9 rounded-full bg-white/70 backdrop-blur-md shadow-sm hover:bg-white text-slate-600 inline-flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+		<Globe class="h-5 w-5" strokeWidth={1.5} />
+		<span class="sr-only">{m.language_switch()}</span>
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content align="end" class="min-w-[150px]">
 		{#each locales as locale}
