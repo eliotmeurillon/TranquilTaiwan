@@ -235,7 +235,7 @@
 </script>
 
 <div class="w-full h-full">
-	<div bind:this={mapContainer} class="w-full h-full rounded-lg" style="min-height: 400px;"></div>
+	<div bind:this={mapContainer} class="w-full h-full rounded-lg z-0"></div>
 </div>
 
 <style>

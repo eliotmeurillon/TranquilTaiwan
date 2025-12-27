@@ -382,7 +382,7 @@
 		</div>
 
 		<!-- Map Placeholder/Preview -->
-		<div class="h-[200px] w-full bg-slate-100 relative">
+		<div class="h-[40vh] min-h-[300px] w-full bg-slate-100 relative z-0">
 			<LeafletMap
 				latitude={scoreData.coordinates.latitude}
 				longitude={scoreData.coordinates.longitude}
@@ -396,22 +396,22 @@
 
 		<div class="px-4 -mt-6 relative z-10 space-y-6">
 			<!-- Global Score (The Hook) -->
-			<div class="bg-white rounded-3xl shadow-lg p-6 text-center animate-fade-in-up">
-				<div class="relative inline-flex items-center justify-center mb-4">
-					<div class="radial-progress {getProgressClass(scoreData.scores.overall)}" style="--value: {scoreData.scores.overall}; --size: 9rem; --thickness: 0.8rem; color: currentColor;">
-						<span class="text-5xl font-bold text-slate-800 tracking-tighter">
-							{Math.round(scoreData.scores.overall)}<span class="text-2xl text-slate-400 font-normal">/100</span>
+			<div class="bg-white rounded-3xl shadow-lg p-4 text-center animate-fade-in-up">
+				<div class="relative inline-flex items-center justify-center mb-2">
+					<div class="radial-progress {getProgressClass(scoreData.scores.overall)}" style="--value: {scoreData.scores.overall}; --size: 7rem; --thickness: 0.6rem; color: currentColor;">
+						<span class="text-4xl font-bold text-slate-800 tracking-tighter">
+							{Math.round(scoreData.scores.overall)}<span class="text-lg text-slate-400 font-normal">/100</span>
 						</span>
 					</div>
 				</div>
 				
-				<div class="mb-4">
+				<div class="mb-2">
 					<h2 class="text-lg font-bold text-slate-800">
 						{m.teaser_livability_label({ scoreLabel: getScoreLabel(scoreData.scores.overall) })}
 					</h2>
 				</div>
 				
-				<p class="text-slate-500 leading-relaxed px-2">
+				<p class="text-sm text-slate-500 leading-relaxed px-2">
 					{getTeaserSummary(scoreData)}
 				</p>
 			</div>
