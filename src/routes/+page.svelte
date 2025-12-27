@@ -259,6 +259,19 @@
 			</div>
 		</div>
 
+		<!-- Map Section -->
+		<div class="h-[40vh] min-h-[300px] w-full bg-slate-100 relative z-0">
+			<LeafletMap
+				latitude={scoreData.coordinates.latitude}
+				longitude={scoreData.coordinates.longitude}
+				address={scoreData.address}
+				noiseScore={scoreData.scores.noise}
+				airQualityScore={scoreData.scores.airQuality}
+				zoom={15}
+				detailedData={scoreData.detailedData}
+			/>
+		</div>
+
 		<div class="px-4 py-6 space-y-6">
 			<!-- Noise Section -->
 			<section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
@@ -271,23 +284,44 @@
 					<h2 class="text-xl font-bold text-slate-800">{m.report_noise_title()}</h2>
 				</div>
 				
-				<div class="mb-4">
-					<div class="flex justify-between items-center mb-1">
-						<span class="text-sm font-medium text-slate-600">{m.report_decibels_label({ value: 55 })}</span>
+				{#if scoreData.detailedData?.noise}
+					{@const noiseData = scoreData.detailedData.noise}
+					<div class="mb-4">
+						<div class="flex justify-between items-center mb-1">
+							<span class="text-sm font-medium text-slate-600">{m.report_decibels_label({ value: Math.round(noiseData.level) })}</span>
+						</div>
+						<progress class="progress progress-success w-full h-3" value={noiseData.level} max="100"></progress>
 					</div>
-					<progress class="progress progress-success w-full h-3" value="55" max="100"></progress>
-				</div>
 
-				<ul class="space-y-3 text-sm text-slate-600">
-					<li class="flex items-start gap-2">
-						<span class="text-emerald-500 mt-1">•</span>
-						{m.report_noise_item_temple({ distance: 150, risk: m.risk_high() })}
-					</li>
-					<li class="flex items-start gap-2">
-						<span class="text-emerald-500 mt-1">•</span>
-						{m.report_noise_item_road({ distance: 400, risk: m.risk_low() })}
-					</li>
-				</ul>
+					<ul class="space-y-3 text-sm text-slate-600">
+						{#if noiseData.nearbyTemples > 0}
+							<li class="flex items-start gap-2">
+								<span class="text-emerald-500 mt-1">•</span>
+								{m.report_noise_item_temple({ 
+									distance: noiseData.nearbyTemples, 
+									risk: noiseData.nearbyTemples > 1 ? m.risk_high() : m.risk_low() 
+								})}
+							</li>
+						{/if}
+						{#if noiseData.majorRoads > 0}
+							<li class="flex items-start gap-2">
+								<span class="text-emerald-500 mt-1">•</span>
+								{m.report_noise_item_road({ 
+									distance: noiseData.majorRoads * 200, 
+									risk: noiseData.majorRoads > 1 ? m.risk_high() : m.risk_low() 
+								})}
+							</li>
+						{/if}
+						{#if noiseData.trafficIntensity > 0}
+							<li class="flex items-start gap-2">
+								<span class="text-emerald-500 mt-1">•</span>
+								<span>Traffic intensity: {Math.round(noiseData.trafficIntensity)}</span>
+							</li>
+						{/if}
+					</ul>
+				{:else}
+					<p class="text-sm text-slate-500">Noise data not available</p>
+				{/if}
 			</section>
 
 			<!-- Environment & Risks Section -->
@@ -301,19 +335,41 @@
 					<h2 class="text-xl font-bold text-slate-800">{m.report_env_title()}</h2>
 				</div>
 
-				<div class="bg-slate-50 rounded-xl p-4 mb-4 text-center">
-					<div class="text-sm text-slate-500 mb-1">{m.report_aqi_label()}</div>
-					<div class="text-3xl font-bold text-emerald-600">35 <span class="text-sm font-normal text-emerald-600">(Good)</span></div>
-				</div>
+				{#if scoreData.detailedData?.airQuality}
+					{@const airData = scoreData.detailedData.airQuality}
+					<div class="bg-slate-50 rounded-xl p-4 mb-4 text-center">
+						<div class="text-sm text-slate-500 mb-1">{m.report_aqi_label()}</div>
+						<div class="text-3xl font-bold text-emerald-600">
+							{airData.aqi} 
+							<span class="text-sm font-normal text-emerald-600">
+								({airData.aqi <= 50 ? 'Good' : airData.aqi <= 100 ? 'Moderate' : airData.aqi <= 150 ? 'Unhealthy for Sensitive' : 'Unhealthy'})
+							</span>
+						</div>
+						{#if airData.pm25}
+							<div class="text-xs text-slate-500 mt-1">PM2.5: {airData.pm25} μg/m³</div>
+						{/if}
+					</div>
 
-				<div class="flex flex-wrap gap-2">
-					<div class="badge badge-lg bg-emerald-100 text-emerald-800 border-none py-3">
-						{m.report_dengue_risk_label({ status: m.risk_none() })}
+					<div class="flex flex-wrap gap-2">
+						<div class="badge badge-lg {airData.dengueRisk ? 'bg-orange-100 text-orange-800' : 'bg-emerald-100 text-emerald-800'} border-none py-3">
+							{m.report_dengue_risk_label({ status: airData.dengueRisk ? m.risk_high() : m.risk_none() })}
+						</div>
+						{#if scoreData.detailedData?.zoning}
+							{@const zoningData = scoreData.detailedData.zoning}
+							<div class="badge badge-lg bg-blue-100 text-blue-800 border-none py-3">
+								{m.report_zoning_label({ 
+									status: zoningData.adjacentIndustrial 
+										? 'Industrial' 
+										: zoningData.adjacentHighIntensityCommercial 
+										? 'High-Intensity Commercial' 
+										: m.zoning_residential() 
+								})}
+							</div>
+						{/if}
 					</div>
-					<div class="badge badge-lg bg-blue-100 text-blue-800 border-none py-3">
-						{m.report_zoning_label({ status: m.zoning_residential() })}
-					</div>
-				</div>
+				{:else}
+					<p class="text-sm text-slate-500">Air quality data not available</p>
+				{/if}
 			</section>
 
 			<!-- Safety Section -->
@@ -327,28 +383,80 @@
 					<h2 class="text-xl font-bold text-slate-800">{m.report_safety_title()}</h2>
 				</div>
 
-				<div class="mb-6">
-					<h3 class="text-sm font-medium text-slate-600 mb-2">{m.report_safety_burglary()}</h3>
-					<!-- Simple Bar Chart Visualization -->
-					<div class="space-y-2">
-						<div class="flex items-center gap-2">
-							<span class="text-xs w-16 text-slate-400">This area</span>
-							<div class="h-2 w-12 bg-emerald-500 rounded-full"></div>
+				{#if scoreData.detailedData?.safety}
+					{@const safetyData = scoreData.detailedData.safety}
+					<div class="mb-6">
+						<h3 class="text-sm font-medium text-slate-600 mb-2">{m.report_safety_burglary()}</h3>
+						<!-- Simple Bar Chart Visualization -->
+						<div class="space-y-2">
+							<div class="flex items-center gap-2">
+								<span class="text-xs w-16 text-slate-400">This area</span>
+								<div class="h-2 flex-1 bg-slate-200 rounded-full overflow-hidden">
+									<div class="h-full bg-emerald-500 rounded-full" style="width: {safetyData.pedestrianSafety}%"></div>
+								</div>
+								<span class="text-xs text-slate-500 w-12 text-right">{Math.round(safetyData.pedestrianSafety)}%</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<span class="text-xs w-16 text-slate-400">Avg</span>
+								<div class="h-2 flex-1 bg-slate-200 rounded-full"></div>
+								<span class="text-xs text-slate-500 w-12 text-right">70%</span>
+							</div>
 						</div>
-						<div class="flex items-center gap-2">
-							<span class="text-xs w-16 text-slate-400">Avg</span>
-							<div class="h-2 w-24 bg-slate-200 rounded-full"></div>
+						<div class="mt-3 text-xs text-slate-500">
+							Crime rate: {(safetyData.crimeRate * 100).toFixed(1)}% | 
+							Accident hotspots: {safetyData.accidentHotspots}
 						</div>
 					</div>
-				</div>
 
-				<div class="relative pl-4 border-l-2 border-slate-200 py-1">
-					<div class="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-400"></div>
-					<p class="text-sm text-slate-600">
-						{m.report_safety_accident({ time: '2 years ago' })}
-					</p>
-				</div>
+					{#if safetyData.accidentHotspots > 0}
+						<div class="relative pl-4 border-l-2 border-slate-200 py-1">
+							<div class="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-400"></div>
+							<p class="text-sm text-slate-600">
+								{m.report_safety_accident({ time: `${safetyData.accidentHotspots} hotspot${safetyData.accidentHotspots > 1 ? 's' : ''} nearby` })}
+							</p>
+						</div>
+					{/if}
+				{:else}
+					<p class="text-sm text-slate-500">Safety data not available</p>
+				{/if}
 			</section>
+
+			<!-- Convenience Section -->
+			{#if scoreData.detailedData?.convenience}
+				{@const convenienceData = scoreData.detailedData.convenience}
+				<section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+					<div class="flex items-center gap-3 mb-4">
+						<div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-4.5 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-4.5 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25" />
+							</svg>
+						</div>
+						<h2 class="text-xl font-bold text-slate-800">{m.convenience()}</h2>
+					</div>
+					<ul class="space-y-3 text-sm text-slate-600">
+						<li class="flex items-start gap-2">
+							<span class="text-indigo-500 mt-1">•</span>
+							<span>YouBike stations: {convenienceData.youbikeStations} ({convenienceData.nearestYoubikeDistance}m to nearest)</span>
+						</li>
+						{#if convenienceData.trashCollectionPoints > 0}
+							<li class="flex items-start gap-2">
+								<span class="text-indigo-500 mt-1">•</span>
+								<span>Trash collection points: {convenienceData.trashCollectionPoints}</span>
+							</li>
+						{/if}
+						{#if convenienceData.waterPoints > 0}
+							<li class="flex items-start gap-2">
+								<span class="text-indigo-500 mt-1">•</span>
+								<span>Water points: {convenienceData.waterPoints}</span>
+							</li>
+						{/if}
+						<li class="flex items-start gap-2">
+							<span class="text-indigo-500 mt-1">•</span>
+							<span>Public transport score: {Math.round(convenienceData.publicTransportScore)}/100</span>
+						</li>
+					</ul>
+				</section>
+			{/if}
 
 			<!-- Action Buttons -->
 			<div class="pt-4 space-y-3">
@@ -390,6 +498,7 @@
 				noiseScore={scoreData.scores.noise}
 				airQualityScore={scoreData.scores.airQuality}
 				zoom={15}
+				detailedData={scoreData.detailedData}
 			/>
 			<!-- Gradient Overlay to blend map into content if desired, or keep sharp -->
 		</div>
@@ -430,23 +539,17 @@
 					<p class="text-xs text-slate-400">{m.teaser_noise_card_desc()}</p>
 				</div>
 
-				<!-- Card 2: Air Quality (Locked) -->
-				<button class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center gap-2 relative overflow-hidden group cursor-pointer w-full" onclick={getPremiumReport}>
-					<div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center opacity-100">
-						<div class="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center mb-2 shadow-lg">
-							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
-								<path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clip-rule="evenodd" />
-							</svg>
-						</div>
-						<span class="text-xs font-bold text-slate-900 uppercase tracking-wider">{m.teaser_card_locked_view()}</span>
-					</div>
-					<div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1 blur-sm">
-						<!-- Icon -->
+				<!-- Card 2: Air Quality (Free - showing real data) -->
+				<div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center gap-2">
+					<div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+						</svg>
 					</div>
 					<h3 class="font-bold text-slate-800">{m.air_quality()}</h3>
-					<div class="text-2xl font-bold text-slate-200 blur-sm">78/100</div>
-					<p class="text-xs text-slate-400 blur-sm">Moderate Risk</p>
-				</button>
+					<div class="text-2xl font-bold {getScoreColor(scoreData.scores.airQuality)}">{Math.round(scoreData.scores.airQuality)}/100</div>
+					<p class="text-xs text-slate-400">{getScoreLabel(scoreData.scores.airQuality)}</p>
+				</div>
 
 				<!-- Card 3: Safety (Locked) -->
 				<button class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center gap-2 relative overflow-hidden group cursor-pointer w-full" onclick={getPremiumReport}>

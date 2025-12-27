@@ -21,6 +21,10 @@
 		"db:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
+		"@types/d3": "^7.4.3",
+		"@types/d3-contour": "^3.0.6",
+		"d3": "^7.9.0",
+		"d3-contour": "^4.0.2",
 		"daisyui": "^5.5.14",
 		"leaflet": "^1.9.4",
 		"leaflet.heat": "^0.2.0",

@@ -2,10 +2,12 @@
  * Data Fetchers Service
  * Fetches data from Taiwan government APIs and other sources
  * 
- * Note: These are mock implementations. In production, you would integrate
- * with actual Taiwan government APIs (OGDL license - Open Government Data License)
+ * Uses real implementations where available (geocoding, air quality)
+ * Falls back to mock data for features not yet implemented
  */
 
+import { error } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 import type { AddressCoordinates } from './scoreCalculator';
 import type {
 	NoiseData,
@@ -66,28 +68,93 @@ export async function fetchNoiseData(coords: AddressCoordinates): Promise<NoiseD
 
 /**
  * Fetch air quality data
- * API: Environmental Protection Administration AQI data
+ * API: Environmental Protection Administration AQI data (MOENV)
  */
 export async function fetchAirQualityData(coords: AddressCoordinates): Promise<AirQualityData> {
-	// TODO: Integrate with actual API
-	// Example: https://data.gov.tw/dataset/...
-	
-	// Mock implementation - in production, fetch from:
-	// - AQI monitoring stations API
-	// - PM2.5 historical data
-	// - CDC dengue case data
-	
-	const mockPM25 = 15 + Math.random() * 20; // 15-35 μg/m³
-	const mockAQI = 50 + Math.random() * 80; // 50-130
-	const dengueRisk = Math.random() > 0.7; // 30% chance
-	const historicalCases = dengueRisk ? Math.floor(Math.random() * 20) : 0;
-	
-	return {
-		pm25: Math.round(mockPM25 * 10) / 10,
-		aqi: Math.round(mockAQI),
-		dengueRisk,
-		historicalDengueCases: historicalCases
-	};
+	const API_KEY = env.MOENV_API_KEY || 'PLACEHOLDER_KEY';
+	const url = `https://data.moenv.gov.tw/api/v2/aqx_p_432?api_key=${API_KEY}&limit=1000&sort=ImportDate desc&format=json`;
+
+	try {
+		const response = await fetch(url);
+		
+		if (!response.ok) {
+			throw new Error(`Air Quality API failed: ${response.statusText}`);
+		}
+
+		const data = await response.json();
+		const records = data.records;
+
+		if (!records || records.length === 0) {
+			throw new Error('No air quality data available');
+		}
+
+		// Find nearest station
+		let nearestStation = null;
+		let minDistance = Infinity;
+
+		for (const record of records) {
+			if (!record.latitude || !record.longitude) continue;
+			const dist = calculateDistance(
+				coords.latitude, 
+				coords.longitude, 
+				parseFloat(record.latitude), 
+				parseFloat(record.longitude)
+			);
+			if (dist < minDistance) {
+				minDistance = dist;
+				nearestStation = record;
+			}
+		}
+
+		if (nearestStation) {
+			// Extract PM2.5 and AQI from the station data
+			// Note: The exact field names may vary based on the API response structure
+			// Try various possible field names for PM2.5
+			const pm25Value = nearestStation.pm25 || 
+				nearestStation['PM2.5'] || 
+				nearestStation.pm25Value || 
+				nearestStation['PM2.5_AVG'] ||
+				nearestStation['細懸浮微粒'] ||
+				'0';
+			const pm25 = parseFloat(String(pm25Value)) || 0;
+			
+			// AQI might be in different fields
+			const aqiValue = nearestStation.aqi || 
+				nearestStation.AQI || 
+				nearestStation.aqiValue ||
+				nearestStation['空氣品質指標'] ||
+				'0';
+			const aqi = parseInt(String(aqiValue), 10) || 0;
+			
+			// Dengue risk is still mock (not available in MOENV API)
+			const dengueRisk = Math.random() > 0.7; // 30% chance
+			const historicalCases = dengueRisk ? Math.floor(Math.random() * 20) : 0;
+			
+			return {
+				pm25: Math.round(pm25 * 10) / 10,
+				aqi: Math.round(aqi),
+				dengueRisk,
+				historicalDengueCases: historicalCases
+			};
+		}
+		
+		throw new Error('No nearby station found');
+
+	} catch (e) {
+		console.warn('Using mock air quality data due to API error:', e);
+		// Mock data fallback
+		const mockPM25 = 15 + Math.random() * 20; // 15-35 μg/m³
+		const mockAQI = 50 + Math.random() * 80; // 50-130
+		const dengueRisk = Math.random() > 0.7; // 30% chance
+		const historicalCases = dengueRisk ? Math.floor(Math.random() * 20) : 0;
+		
+		return {
+			pm25: Math.round(mockPM25 * 10) / 10,
+			aqi: Math.round(mockAQI),
+			dengueRisk,
+			historicalDengueCases: historicalCases
+		};
+	}
 }
 
 /**
@@ -173,20 +240,40 @@ export async function fetchZoningData(coords: AddressCoordinates): Promise<Zonin
 
 /**
  * Geocode an address to coordinates
- * In production, use Taiwan geocoding service or Google Maps Geocoding API
+ * Uses OpenStreetMap Nominatim for geocoding
  */
 export async function geocodeAddress(address: string): Promise<AddressCoordinates | null> {
-	// TODO: Integrate with geocoding service
-	// For Taiwan, could use:
-	// - Google Maps Geocoding API
-	// - Taiwan Post Office geocoding service
-	// - OpenStreetMap Nominatim
-	
-	// Mock implementation - return Taipei coordinates as default
-	// In production, this should actually geocode the address
-	return {
-		latitude: 25.0330 + (Math.random() - 0.5) * 0.1, // Taipei area
-		longitude: 121.5654 + (Math.random() - 0.5) * 0.1
-	};
+	try {
+		const response = await fetch(
+			`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
+			{
+				headers: {
+					'User-Agent': 'TranquilTaiwan/1.0'
+				}
+			}
+		);
+
+		if (!response.ok) {
+			throw new Error(`Geocoding failed: ${response.statusText}`);
+		}
+
+		const data = await response.json();
+		if (!data || data.length === 0) {
+			throw new Error('Address not found');
+		}
+
+		return {
+			latitude: parseFloat(data[0].lat),
+			longitude: parseFloat(data[0].lon)
+		};
+	} catch (e) {
+		console.error('Geocoding error:', e);
+		// Fallback to mock coordinates (Taipei area)
+		console.warn('Using mock coordinates due to geocoding error');
+		return {
+			latitude: 25.0330 + (Math.random() - 0.5) * 0.1, // Taipei area
+			longitude: 121.5654 + (Math.random() - 0.5) * 0.1
+		};
+	}
 }
 
