@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
+	import * as m from '$lib/paraglide/messages';
 
 	interface Props {
 		latitude: number;
@@ -25,6 +27,20 @@
 	let noiseHeatLayer: any = null;
 	let airQualityHeatLayer: any = null;
 	let L: any = null;
+	let controlsElement: any = null;
+	
+	// Watch for locale changes to update map labels
+	afterNavigate(() => {
+		if (controlsElement && map) {
+			// Update labels when locale changes
+			if (controlsElement.noiseLabel) {
+				controlsElement.noiseLabel.textContent = m.map_heatmap_toggle_noise();
+			}
+			if (controlsElement.airLabel) {
+				controlsElement.airLabel.textContent = m.map_heatmap_toggle_air();
+			}
+		}
+	});
 
 	onMount(async () => {
 		if (!browser) return;
@@ -161,7 +177,7 @@
 		noiseCheckbox.className = 'checkbox checkbox-sm mr-2';
 		const noiseLabel = document.createElement('label');
 		noiseLabel.htmlFor = 'noise-heatmap-toggle';
-		noiseLabel.textContent = '🔇 Noise Heatmap';
+		noiseLabel.textContent = m.map_heatmap_toggle_noise();
 		noiseLabel.className = 'cursor-pointer';
 		noiseToggle.appendChild(noiseCheckbox);
 		noiseToggle.appendChild(noiseLabel);
@@ -175,13 +191,20 @@
 		airCheckbox.className = 'checkbox checkbox-sm mr-2';
 		const airLabel = document.createElement('label');
 		airLabel.htmlFor = 'air-heatmap-toggle';
-		airLabel.textContent = '🌬️ Air Quality Heatmap';
+		airLabel.textContent = m.map_heatmap_toggle_air();
 		airLabel.className = 'cursor-pointer';
 		airToggle.appendChild(airCheckbox);
 		airToggle.appendChild(airLabel);
+		
+		// Store references for updating labels
+		(controls as any).noiseLabel = noiseLabel;
+		(controls as any).airLabel = airLabel;
 
 		controls.appendChild(noiseToggle);
 		controls.appendChild(airToggle);
+		
+		// Store reference for locale updates
+		controlsElement = controls;
 
 		// Add event listeners
 		noiseCheckbox.addEventListener('change', (e) => {

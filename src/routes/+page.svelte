@@ -1,6 +1,22 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { afterNavigate } from '$app/navigation';
+	import { getLocale } from '$lib/paraglide/runtime';
 	import LeafletMap from '$lib/components/LeafletMap.svelte';
+	import * as m from '$lib/paraglide/messages';
+
+	// Make the component reactive to locale changes
+	let locale = $state(getLocale());
+	
+	// Update locale when navigation happens
+	afterNavigate(() => {
+		locale = getLocale();
+	});
+	
+	// Watch for locale changes
+	$effect(() => {
+		locale = getLocale();
+	});
 
 	interface ScoreData {
 		address: string;
@@ -27,7 +43,7 @@
 		if (!browser) return;
 		
 		if (!address.trim()) {
-			error = 'Please enter an address';
+			error = m.error_please_enter_address();
 			return;
 		}
 
@@ -40,13 +56,13 @@
 			
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.message || 'Failed to calculate score');
+				throw new Error(errorData.message || m.error_failed_calculate());
 			}
 
 			const data = await response.json();
 			scoreData = data;
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'An error occurred';
+			error = err instanceof Error ? err.message : m.error_occurred();
 		} finally {
 			loading = false;
 		}
@@ -65,14 +81,14 @@
 			
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.message || 'Failed to fetch premium report');
+				throw new Error(errorData.message || m.error_failed_fetch_report());
 			}
 
 			const data = await response.json();
 			scoreData = data;
 			showPremium = true;
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'An error occurred';
+			error = err instanceof Error ? err.message : m.error_occurred();
 		} finally {
 			loading = false;
 		}
@@ -91,10 +107,10 @@
 	}
 
 	function getScoreLabel(score: number): string {
-		if (score >= 80) return 'Excellent';
-		if (score >= 60) return 'Good';
-		if (score >= 40) return 'Fair';
-		return 'Poor';
+		if (score >= 80) return m.score_excellent();
+		if (score >= 60) return m.score_good();
+		if (score >= 40) return m.score_fair();
+		return m.score_poor();
 	}
 
 	function getProgressColor(score: number): string {
@@ -111,11 +127,11 @@
 			<div class="hero-content text-center py-12">
 				<div class="max-w-md">
 					<h1 class="text-6xl font-bold mb-4">
-						寧靜台灣
+						{m.app_title()}
 					</h1>
 					<p class="text-3xl font-semibold mb-2">TranquilTaiwan</p>
 					<p class="text-lg text-base-content/70">
-						Your Livability Index for Taiwan
+						{m.app_subtitle()}
 					</p>
 				</div>
 			</div>
@@ -129,7 +145,7 @@
 						<input
 							type="text"
 							bind:value={address}
-							placeholder="Enter an address in Taiwan (e.g., 台北市信義區信義路五段7號)"
+							placeholder={m.search_placeholder()}
 							class="input input-bordered input-lg w-full"
 							onkeydown={(e) => e.key === 'Enter' && searchAddress()}
 						/>
@@ -146,9 +162,9 @@
 								</svg>
 							{/if}
 							{#if loading}
-								Calculating...
+								{m.calculating()}
 							{:else}
-								Search
+								{m.search_button()}
 							{/if}
 						</button>
 					</div>
@@ -171,7 +187,7 @@
 				<div class="card-body">
 					<!-- Overall Score Card -->
 					<div class="mb-8">
-						<h2 class="card-title text-3xl mb-6">Livability Score</h2>
+						<h2 class="card-title text-3xl mb-6">{m.livability_score()}</h2>
 						<div class="flex flex-col md:flex-row items-center gap-6">
 							<div class="stat bg-base-200 rounded-2xl px-8 py-6">
 								<div class="stat-figure {getScoreColor(scoreData.scores.overall)}">
@@ -179,7 +195,7 @@
 										<span class="text-4xl font-bold">{Math.round(scoreData.scores.overall)}</span>
 									</div>
 								</div>
-								<div class="stat-title">Overall Score</div>
+								<div class="stat-title">{m.overall_score()}</div>
 								<div class="stat-value {getScoreColor(scoreData.scores.overall)}">{Math.round(scoreData.scores.overall)}</div>
 								<div class="stat-desc">
 									<span class="badge {getScoreBadge(scoreData.scores.overall)} badge-lg">
@@ -192,7 +208,7 @@
 									{scoreData.address}
 								</p>
 								<p class="text-base-content/70 mb-4">
-									Coordinates: {scoreData.coordinates.latitude.toFixed(4)}, {scoreData.coordinates.longitude.toFixed(4)}
+									{m.coordinates()}: {scoreData.coordinates.latitude.toFixed(4)}, {scoreData.coordinates.longitude.toFixed(4)}
 								</p>
 							</div>
 						</div>
@@ -200,7 +216,7 @@
 
 					<!-- Map Section -->
 					<div class="mb-8">
-						<h3 class="card-title text-2xl mb-4">📍 Location Map</h3>
+						<h3 class="card-title text-2xl mb-4">{m.location_map()}</h3>
 						<div class="w-full h-96 rounded-lg overflow-hidden border border-base-300">
 							<LeafletMap
 								latitude={scoreData.coordinates.latitude}
@@ -212,7 +228,7 @@
 							/>
 						</div>
 						<p class="text-sm text-base-content/70 mt-2">
-							Toggle heatmaps to visualize noise levels (red = noisy) and air quality (red = poor air quality)
+							{m.map_heatmap_description()}
 						</p>
 					</div>
 
@@ -222,13 +238,13 @@
 						<div class="card bg-base-200 shadow">
 							<div class="card-body">
 								<div class="flex items-center justify-between mb-2">
-									<h3 class="card-title text-lg">🔇 Noise Score</h3>
+									<h3 class="card-title text-lg">{m.noise_score()}</h3>
 									<span class="text-2xl font-bold {getScoreColor(scoreData.scores.noise)}">
 										{Math.round(scoreData.scores.noise)}
 									</span>
 								</div>
 								<p class="text-sm text-base-content/70 mb-3">
-									Higher = Quieter (considers traffic, temples, major roads)
+									{m.noise_score_description()}
 								</p>
 								<progress 
 									class="progress {getProgressColor(scoreData.scores.noise)}" 
@@ -242,13 +258,13 @@
 						<div class="card bg-base-200 shadow">
 							<div class="card-body">
 								<div class="flex items-center justify-between mb-2">
-									<h3 class="card-title text-lg">🌬️ Air Quality</h3>
+									<h3 class="card-title text-lg">{m.air_quality()}</h3>
 									<span class="text-2xl font-bold {getScoreColor(scoreData.scores.airQuality)}">
 										{Math.round(scoreData.scores.airQuality)}
 									</span>
 								</div>
 								<p class="text-sm text-base-content/70 mb-3">
-									PM2.5, AQI, and dengue risk assessment
+									{m.air_quality_description()}
 								</p>
 								<progress 
 									class="progress {getProgressColor(scoreData.scores.airQuality)}" 
@@ -262,13 +278,13 @@
 						<div class="card bg-base-200 shadow">
 							<div class="card-body">
 								<div class="flex items-center justify-between mb-2">
-									<h3 class="card-title text-lg">🛡️ Safety</h3>
+									<h3 class="card-title text-lg">{m.safety()}</h3>
 									<span class="text-2xl font-bold {getScoreColor(scoreData.scores.safety)}">
 										{Math.round(scoreData.scores.safety)}
 									</span>
 								</div>
 								<p class="text-sm text-base-content/70 mb-3">
-									Accident hotspots, crime rate, pedestrian safety
+									{m.safety_description()}
 								</p>
 								<progress 
 									class="progress {getProgressColor(scoreData.scores.safety)}" 
@@ -282,13 +298,13 @@
 						<div class="card bg-base-200 shadow">
 							<div class="card-body">
 								<div class="flex items-center justify-between mb-2">
-									<h3 class="card-title text-lg">🚲 Convenience</h3>
+									<h3 class="card-title text-lg">{m.convenience()}</h3>
 									<span class="text-2xl font-bold {getScoreColor(scoreData.scores.convenience)}">
 										{Math.round(scoreData.scores.convenience)}
 									</span>
 								</div>
 								<p class="text-sm text-base-content/70 mb-3">
-									YouBike stations, public transport, essential services
+									{m.convenience_description()}
 								</p>
 								<progress 
 									class="progress {getProgressColor(scoreData.scores.convenience)}" 
@@ -302,13 +318,13 @@
 						<div class="card bg-base-200 shadow">
 							<div class="card-body">
 								<div class="flex items-center justify-between mb-2">
-									<h3 class="card-title text-lg">🏭 Zoning Risk</h3>
+									<h3 class="card-title text-lg">{m.zoning_risk()}</h3>
 									<span class="text-2xl font-bold {getScoreColor(scoreData.scores.zoningRisk)}">
 										{Math.round(scoreData.scores.zoningRisk)}
 									</span>
 								</div>
 								<p class="text-sm text-base-content/70 mb-3">
-									Lower risk from adjacent industrial/commercial zones
+									{m.zoning_risk_description()}
 								</p>
 								<progress 
 									class="progress {getProgressColor(scoreData.scores.zoningRisk)}" 
@@ -327,10 +343,9 @@
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 							</svg>
 							<div class="flex-1">
-								<h3 class="font-bold text-lg mb-2">Get Detailed Report</h3>
+								<h3 class="font-bold text-lg mb-2">{m.premium_report_title()}</h3>
 								<p class="text-sm">
-									Unlock comprehensive insights including historical accident data, detailed zoning analysis, 
-									and precise metrics breakdown.
+									{m.premium_report_description()}
 								</p>
 							</div>
 							<button
@@ -346,9 +361,9 @@
 									</svg>
 								{/if}
 								{#if loading}
-									Loading...
+									{m.loading()}
 								{:else}
-									View Premium Report
+									{m.view_premium_report()}
 								{/if}
 							</button>
 						</div>
@@ -357,12 +372,12 @@
 					<!-- Premium Report Details -->
 					{#if showPremium && scoreData.detailedData}
 						<div class="divider"></div>
-						<h3 class="card-title text-2xl mb-4">📊 Detailed Report</h3>
+						<h3 class="card-title text-2xl mb-4">{m.detailed_report()}</h3>
 						<div class="space-y-4">
 							<div class="collapse collapse-plus bg-base-200">
 								<input type="checkbox" />
 								<div class="collapse-title text-xl font-medium">
-									🔇 Noise Data
+									{m.noise_data()}
 								</div>
 								<div class="collapse-content">
 									<pre class="text-sm overflow-x-auto bg-base-300 p-4 rounded">{JSON.stringify(scoreData.detailedData.noise, null, 2)}</pre>
@@ -371,7 +386,7 @@
 							<div class="collapse collapse-plus bg-base-200">
 								<input type="checkbox" />
 								<div class="collapse-title text-xl font-medium">
-									🌬️ Air Quality Data
+									{m.air_quality_data()}
 								</div>
 								<div class="collapse-content">
 									<pre class="text-sm overflow-x-auto bg-base-300 p-4 rounded">{JSON.stringify(scoreData.detailedData.airQuality, null, 2)}</pre>
@@ -380,7 +395,7 @@
 							<div class="collapse collapse-plus bg-base-200">
 								<input type="checkbox" />
 								<div class="collapse-title text-xl font-medium">
-									🛡️ Safety Data
+									{m.safety_data()}
 								</div>
 								<div class="collapse-content">
 									<pre class="text-sm overflow-x-auto bg-base-300 p-4 rounded">{JSON.stringify(scoreData.detailedData.safety, null, 2)}</pre>
@@ -389,7 +404,7 @@
 							<div class="collapse collapse-plus bg-base-200">
 								<input type="checkbox" />
 								<div class="collapse-title text-xl font-medium">
-									🚲 Convenience Data
+									{m.convenience_data()}
 								</div>
 								<div class="collapse-content">
 									<pre class="text-sm overflow-x-auto bg-base-300 p-4 rounded">{JSON.stringify(scoreData.detailedData.convenience, null, 2)}</pre>
@@ -398,7 +413,7 @@
 							<div class="collapse collapse-plus bg-base-200">
 								<input type="checkbox" />
 								<div class="collapse-title text-xl font-medium">
-									🏭 Zoning Data
+									{m.zoning_data()}
 								</div>
 								<div class="collapse-content">
 									<pre class="text-sm overflow-x-auto bg-base-300 p-4 rounded">{JSON.stringify(scoreData.detailedData.zoning, null, 2)}</pre>
@@ -414,32 +429,32 @@
 		{#if !scoreData}
 			<div class="card bg-base-100 shadow-xl">
 				<div class="card-body">
-					<h2 class="card-title text-3xl mb-6">How It Works</h2>
+					<h2 class="card-title text-3xl mb-6">{m.how_it_works()}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 						<div class="card bg-base-200 shadow">
 							<div class="card-body items-center text-center">
 								<div class="text-5xl mb-4">🔍</div>
-								<h3 class="card-title">Search Address</h3>
+								<h3 class="card-title">{m.how_it_works_search()}</h3>
 								<p class="text-base-content/70">
-									Enter any address in Taiwan to get an instant livability score.
+									{m.how_it_works_search_desc()}
 								</p>
 							</div>
 						</div>
 						<div class="card bg-base-200 shadow">
 							<div class="card-body items-center text-center">
 								<div class="text-5xl mb-4">📊</div>
-								<h3 class="card-title">Get Scores</h3>
+								<h3 class="card-title">{m.how_it_works_scores()}</h3>
 								<p class="text-base-content/70">
-									We analyze noise, air quality, safety, convenience, and zoning risks.
+									{m.how_it_works_scores_desc()}
 								</p>
 							</div>
 						</div>
 						<div class="card bg-base-200 shadow">
 							<div class="card-body items-center text-center">
 								<div class="text-5xl mb-4">💎</div>
-								<h3 class="card-title">Premium Reports</h3>
+								<h3 class="card-title">{m.how_it_works_premium()}</h3>
 								<p class="text-base-content/70">
-									Unlock detailed insights with comprehensive data breakdowns.
+									{m.how_it_works_premium_desc()}
 								</p>
 							</div>
 						</div>
