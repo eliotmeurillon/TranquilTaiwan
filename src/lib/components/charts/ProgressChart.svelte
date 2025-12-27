@@ -29,6 +29,10 @@
 	onMount(() => {
 		if (!canvasElement) return;
 
+		// Get context with willReadFrequently for better performance with getImageData
+		const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
+		if (!ctx) return;
+
 		const config: ChartConfiguration<'bar'> = {
 			type: 'bar',
 			data: {
@@ -82,7 +86,8 @@
 			}
 		};
 
-		chartInstance = new ChartJS(canvasElement, config);
+		// Use the context with willReadFrequently for better performance with getImageData
+		chartInstance = new ChartJS(ctx, config);
 	});
 
 	onDestroy(() => {

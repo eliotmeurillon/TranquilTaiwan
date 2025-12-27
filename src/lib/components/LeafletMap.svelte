@@ -96,11 +96,26 @@
 	onMount(async () => {
 		if (!browser) return;
 
+		// Patch HTMLCanvasElement.getContext to add willReadFrequently for leaflet.heat
+		// This fixes the Canvas2D warning about multiple readback operations
+		const originalGetContext = HTMLCanvasElement.prototype.getContext;
+		HTMLCanvasElement.prototype.getContext = function(
+			contextType: '2d' | 'bitmaprenderer' | 'webgl' | 'webgl2',
+			options?: CanvasRenderingContext2DSettings | ImageBitmapRenderingContextSettings | WebGLContextAttributes
+		) {
+			if (contextType === '2d') {
+				// Merge willReadFrequently into options (or create new options object)
+				const context2DSettings = (options || {}) as CanvasRenderingContext2DSettings;
+				options = { ...context2DSettings, willReadFrequently: true };
+			}
+			return originalGetContext.call(this, contextType, options);
+		} as typeof HTMLCanvasElement.prototype.getContext;
+
 		// Dynamically import Leaflet only on client side
 		const leafletModule = await import('leaflet');
 		L = leafletModule.default;
 		
-		// Import leaflet.heat plugin
+		// Import leaflet.heat plugin (will use patched getContext)
 		await import('leaflet.heat');
 		
 		// Import CSS

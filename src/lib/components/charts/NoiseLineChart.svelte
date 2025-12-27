@@ -49,7 +49,7 @@
 		const peakHour = getPeakHour(data, hours);
 
 		// Create gradient for fill
-		const ctx = canvasElement.getContext('2d');
+		const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
 		if (!ctx) return;
 
 		const gradient = ctx.createLinearGradient(0, 0, 0, 192);
@@ -139,7 +139,8 @@
 			}
 		};
 
-		chartInstance = new ChartJS(canvasElement, config);
+		// Use the context with willReadFrequently for better performance with getImageData
+		chartInstance = new ChartJS(ctx, config);
 	});
 
 	onDestroy(() => {
@@ -157,7 +158,7 @@
 			chartInstance.data.datasets[0].data = data;
 			
 			// Recreate gradient for updated chart
-			const ctx = canvasElement.getContext('2d');
+			const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
 			if (ctx) {
 				const gradient = ctx.createLinearGradient(0, 0, 0, 192);
 				gradient.addColorStop(0, 'rgba(249, 115, 22, 0.3)');
