@@ -1,3 +1,21 @@
 @import 'tailwindcss';
 @plugin "daisyui";
 @plugin '@tailwindcss/typography';
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+:root {
+  font-family: var(--font-sans);
+}
+
+/* Customizing DaisyUI colors for the specific vibe */
+/* Using OKLCH values for better color mixing if needed, but hex is fine */
+:root {
+    --p: 55% 0.15 155; /* Emeraldish Green */
+    --pc: 98% 0.02 155; /* Light content on primary */
+    
+    --er: 55% 0.15 35; /* Burnt Orange */
+    --erc: 98% 0.02 35; /* Light content on error */
+}
