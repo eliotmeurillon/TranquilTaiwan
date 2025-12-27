@@ -263,4 +263,9 @@
 		background: transparent;
 		border: none;
 	}
+
+	:global(.leaflet-bottom.leaflet-right) {
+		bottom: 80px !important; /* Move zoom controls up to avoid floating card */
+		right: 20px !important;
+	}
 </style>

@@ -409,7 +409,7 @@
 	<div class="min-h-screen bg-slate-50 relative pb-32 font-sans">
 		
 		<!-- 1. Map Background (Hero) -->
-		<div class="absolute top-0 left-0 w-full h-[55vh] z-0">
+		<div class="absolute top-0 left-0 w-full h-[65vh] z-0">
 			<LeafletMap
 				latitude={scoreData.coordinates.latitude}
 				longitude={scoreData.coordinates.longitude}
@@ -421,12 +421,12 @@
 				pointsOfInterest={pointsOfInterest}
 			/>
 			<!-- Gradient Overlay -->
-			<div class="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none"></div>
+			<div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none"></div>
 
 			<!-- Floating Score Card (Absolute over map) -->
 			<div class="absolute -bottom-20 left-4 right-4 z-20 max-w-4xl mx-auto">
 				<Card.Root class="backdrop-blur-xl bg-white/90 border border-white/50 shadow-xl rounded-2xl overflow-hidden">
-					<Card.Header class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
+					<Card.Header class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
 						<div class="space-y-2">
 							<Card.Title class="text-2xl md:text-3xl font-bold text-slate-900">{scoreData.address}</Card.Title>
 							<div class="flex items-center gap-2 text-emerald-700 font-medium">
@@ -472,7 +472,7 @@
 		</header>
 
 		<!-- 3. Spacer -->
-		<div class="h-[55vh] w-full pointer-events-none"></div>
+		<div class="h-[65vh] w-full pointer-events-none"></div>
 
 		<!-- 4. Content Container -->
 		<div class="relative z-20 px-4 max-w-4xl mx-auto space-y-8 mt-24">
