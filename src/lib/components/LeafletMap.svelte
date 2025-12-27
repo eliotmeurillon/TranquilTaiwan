@@ -99,9 +99,14 @@
 		map = L.map(mapContainer, {
 			center: [latitude, longitude],
 			zoom: zoom,
-			zoomControl: true,
+			zoomControl: false,
 			layers: [] // Initialize empty, we add layers below
 		});
+
+		// Add zoom control to bottom right
+		L.control.zoom({
+			position: 'bottomright'
+		}).addTo(map);
 
 		// Add CartoDB Positron tile layer (Minimalist B&W)
 		const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {

@@ -6,6 +6,7 @@
 	import LeafletMap from '$lib/components/LeafletMap.svelte';
 	import NativeAdCard from '$lib/components/NativeAdCard.svelte';
 	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
+	import InfoHint from '$lib/components/InfoHint.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { PageData } from './$types';
 	
@@ -420,35 +421,10 @@
 				pointsOfInterest={pointsOfInterest}
 			/>
 			<!-- Gradient Overlay -->
-			<div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none"></div>
-		</div>
+			<div class="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none"></div>
 
-		<!-- 2. Header (Transparent) -->
-		<header class="fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center pointer-events-none">
-			<div class="pointer-events-auto">
-				<Button 
-					variant="outline" 
-					size="icon" 
-					class="bg-white/70 backdrop-blur-md shadow-sm hover:bg-white rounded-full border-0"
-					onclick={() => goto('/')}
-					aria-label={m.teaser_back()}
-				>
-					<ArrowLeft class="w-5 h-5 text-slate-700" strokeWidth={1.5} />
-				</Button>
-			</div>
-			<div class="pointer-events-auto">
-				<LanguageSwitcher />
-			</div>
-		</header>
-
-		<!-- 3. Spacer -->
-		<div class="h-[45vh] w-full pointer-events-none"></div>
-
-		<!-- 4. Content Container -->
-		<div class="relative z-20 px-4 max-w-4xl mx-auto space-y-8">
-			
-			<!-- Floating Score Card -->
-			<div class="-mt-20">
+			<!-- Floating Score Card (Absolute over map) -->
+			<div class="absolute -bottom-20 left-4 right-4 z-20 max-w-4xl mx-auto">
 				<Card.Root class="backdrop-blur-xl bg-white/90 border border-white/50 shadow-xl rounded-2xl overflow-hidden">
 					<Card.Header class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
 						<div class="space-y-2">
@@ -475,7 +451,32 @@
 					</Card.Header>
 				</Card.Root>
 			</div>
+		</div>
 
+		<!-- 2. Header (Transparent) -->
+		<header class="fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center pointer-events-none">
+			<div class="pointer-events-auto">
+				<Button 
+					variant="outline" 
+					size="icon" 
+					class="bg-white/70 backdrop-blur-md shadow-sm hover:bg-white rounded-full border-0"
+					onclick={() => goto('/')}
+					aria-label={m.teaser_back()}
+				>
+					<ArrowLeft class="w-5 h-5 text-slate-700" strokeWidth={1.5} />
+				</Button>
+			</div>
+			<div class="pointer-events-auto">
+				<LanguageSwitcher />
+			</div>
+		</header>
+
+		<!-- 3. Spacer -->
+		<div class="h-[55vh] w-full pointer-events-none"></div>
+
+		<!-- 4. Content Container -->
+		<div class="relative z-20 px-4 max-w-4xl mx-auto space-y-8 mt-24">
+			
 			<!-- Native Ad (Partenaire) -->
 			<NativeAdCard 
 				title="Isolation Phonique Pro" 
@@ -495,6 +496,10 @@
 									<Volume2 class="w-5 h-5" strokeWidth={1.5} />
 								</div>
 								<Card.Title>{m.report_noise_title()}</Card.Title>
+								<InfoHint 
+									title="Comment lire les dB ?" 
+									description="40dB = Bibliothèque. 60dB = Conversation. 80dB = Trafic intense. Au-delà de 65dB, le sommeil peut être perturbé."
+								/>
 							</div>
 							<Badge variant="outline" class="font-bold text-sm bg-slate-50">
 								{Math.round(scoreData.detailedData?.noise?.level || 0)} dB
@@ -585,8 +590,16 @@
 							{@const airData = scoreData.detailedData.airQuality}
 							<div class="flex items-center gap-6 mb-6">
 								<!-- Big AQI Badge -->
-								<div class="flex-shrink-0 w-20 h-20 rounded-2xl {airData.aqi <= 50 ? 'bg-emerald-50 text-emerald-600' : airData.aqi <= 100 ? 'bg-yellow-50 text-yellow-600' : 'bg-orange-50 text-orange-600'} flex flex-col items-center justify-center p-2 border border-black/5">
-									<span class="text-[10px] font-bold uppercase opacity-70 mb-0.5">AQI</span>
+								<div class="flex-shrink-0 w-20 h-20 rounded-2xl {airData.aqi <= 50 ? 'bg-emerald-50 text-emerald-600' : airData.aqi <= 100 ? 'bg-yellow-50 text-yellow-600' : 'bg-orange-50 text-orange-600'} flex flex-col items-center justify-center p-2 border border-black/5 relative">
+									<div class="flex items-center gap-1">
+										<span class="text-[10px] font-bold uppercase opacity-70 mb-0.5">AQI</span>
+										<div class="absolute -top-1 -right-1">
+											<InfoHint 
+												title="Indice de Qualité de l'Air" 
+												description="En dessous de 50 : Excellent. Au-dessus de 100 : Risqué pour les asthmatiques et enfants."
+											/>
+										</div>
+									</div>
 									<span class="text-3xl font-bold tracking-tighter">{airData.aqi}</span>
 								</div>
 								
@@ -608,7 +621,13 @@
 										<Bug class="w-4 h-4" strokeWidth={1.5} />
 									</div>
 									<div class="flex-1">
-										<p class="text-sm font-medium text-slate-900">Dengue Risk</p>
+										<div class="flex items-center gap-2">
+											<p class="text-sm font-medium text-slate-900">Dengue Risk</p>
+											<InfoHint 
+												title="Risque Épidémique" 
+												description="Basé sur l'historique des foyers de moustiques du CDC Taïwan sur les 12 derniers mois."
+											/>
+										</div>
 										<p class="text-xs text-slate-500">{airData.dengueRisk ? m.risk_high() : m.risk_none()}</p>
 									</div>
 									{#if airData.dengueRisk}
