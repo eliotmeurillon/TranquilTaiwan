@@ -42,13 +42,14 @@
 </script>
 
 <div class="dropdown dropdown-end">
-	<label tabindex="0" class="btn btn-ghost btn-sm gap-2">
+	<button type="button" tabindex="0" class="btn btn-ghost btn-sm gap-2" aria-label={m.language_switch()}>
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			class="h-5 w-5"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
+			aria-hidden="true"
 		>
 			<path
 				stroke-linecap="round"
@@ -59,8 +60,8 @@
 		</svg>
 		<span class="hidden sm:inline">{m.language_switch()}</span>
 		<span class="sm:hidden">{currentLocale.toUpperCase()}</span>
-	</label>
-	<ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow-lg">
+	</button>
+	<ul class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow-lg">
 		{#each locales as locale}
 			<li>
 				<button

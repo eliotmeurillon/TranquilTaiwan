@@ -105,14 +105,14 @@
 		const height = size.y;
 		
 		// Project points to current container pixels
-		const screenPoints = points.map(p => {
+		const screenPoints: [number, number, number][] = points.map(p => {
 			const pt = map.latLngToContainerPoint([p[0], p[1]]);
-			return [pt.x, pt.y, p[2]]; // x, y, weight
+			return [pt.x, pt.y, p[2]] as [number, number, number]; // x, y, weight
 		});
 
 		// Generate contours
 		// bandwidth corresponds to standard deviation (blur)
-		const density = d3.contourDensity()
+		const density = d3.contourDensity<[number, number, number]>()
 			.x(d => d[0])
 			.y(d => d[1])
 			.weight(d => d[2]) // Use intensity
@@ -176,11 +176,12 @@
 		createOrUpdateLayer();
 	}
 
-	// Watch for dependencies changes
+	// Watch for dependencies changes (map, L, points)
 	$effect(() => {
-		createOrUpdateLayer();
-		
-		if (map) {
+		// Access reactive dependencies to track them
+		if (map && L && points) {
+			createOrUpdateLayer();
+			
 			map.on('zoomend', onZoomEnd);
 			map.on('moveend', onMoveEnd); // Add moveend listener
 		}

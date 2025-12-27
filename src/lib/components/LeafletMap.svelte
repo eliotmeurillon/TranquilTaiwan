@@ -87,6 +87,9 @@
 		const leafletModule = await import('leaflet');
 		L = leafletModule.default;
 		
+		// Import leaflet.heat plugin
+		await import('leaflet.heat');
+		
 		// Import CSS
 		await import('leaflet/dist/leaflet.css');
 
@@ -211,14 +214,13 @@
 		};
 
 		L.control.layers(null, overlayMaps, { position: 'topright' }).addTo(map);
+	});
 
-		// Cleanup
-		return () => {
-			if (map) {
-				map.remove();
-				map = null;
-			}
-		};
+	onDestroy(() => {
+		if (map) {
+			map.remove();
+			map = null;
+		}
 	});
 </script>
 
