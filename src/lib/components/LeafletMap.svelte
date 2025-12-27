@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import * as m from '$lib/paraglide/messages';
 	import DynamicHeatmapLayer from './DynamicHeatmapLayer.svelte';
 
 	// Define PointOfInterest type
@@ -36,6 +34,9 @@
 			};
 		};
 		pointsOfInterest?: PointOfInterest[];
+		noiseVisible?: boolean;
+		airQualityVisible?: boolean;
+		safetyPointsVisible?: boolean;
 	}
 
 	let { 
@@ -47,35 +48,30 @@
 		zoom = 15,
 		detailedData,
 		pointsOfInterest = [],
-		noiseVisible = $bindable(true), // Heatmap layer (Nuisances Sonores)
-		airQualityVisible = $bindable(false), // Air quality layer (Qualité de l'Air)
-		safetyPointsVisible = $bindable(false) // Safety points layer (Points de Sécurité)
-	}: Props & {
-		noiseVisible?: boolean;
-		airQualityVisible?: boolean;
-		safetyPointsVisible?: boolean;
-	} = $props();
+		noiseVisible = $bindable(true),
+		airQualityVisible = $bindable(false),
+		safetyPointsVisible = $bindable(false)
+	}: Props = $props();
 
 	let mapContainer: HTMLDivElement;
 	let map: any = $state(null);
 	let L: any = $state(null);
-	let layersControl: any = $state(null);
 	let nuisanceLayer: any = $state(null);
 	let amenityLayer: any = $state(null);
 	let safetyPointsLayer: any = $state(null);
 	let airQualityLayer: any = $state(null);
 	let circle: any = $state(null);
-	let heatmapLayer: any = $state(null);
 	
-	// Icon SVG paths
+	// Lucide Icons SVG paths
+	// Removed fixed width/height to allow flex container to control size or use full size
 	const ICONS = {
-		house: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
-		temple: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>`, // Bell
-		accident: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>`, // AlertTriangle
-		factory: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M17 18h1" /><path d="M12 18h1" /><path d="M7 18h1" /></svg>`,
-		youbike: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5" /><circle cx="5.5" cy="17.5" r="3.5" /><circle cx="15" cy="5" r="1" /><path d="M12 17.5V14l-3-3 4-3 2 3h2" /></svg>`, // Bike
-		transport: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="3" rx="2" /><path d="M4 11h16" /><path d="M12 3v8" /><path d="m8 19-2 3" /><path d="m18 22-2-3" /><path d="M8 15h0" /><path d="M16 15h0" /></svg>`, // Train
-		trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>`
+		house: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`,
+		temple: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`, // Bell
+		accident: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`, // TriangleAlert
+		factory: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg>`,
+		youbike: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>`, // Bike
+		transport: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.1V7a4 4 0 0 0 8 0V3.1"/><path d="m9 15-1-1"/><path d="m15 15 1-1"/><path d="M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z"/><path d="m8 19-2 3"/><path d="m16 19 2 3"/></svg>`, // TrainFront
+		trash: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>` // Trash2
 	};
 
 	let heatmapPoints = $derived.by(() => {
@@ -98,176 +94,173 @@
 		if (!browser) return;
 
 		// Patch HTMLCanvasElement.getContext to add willReadFrequently for leaflet.heat
-		// This fixes the Canvas2D warning about multiple readback operations
 		const originalGetContext = HTMLCanvasElement.prototype.getContext;
 		HTMLCanvasElement.prototype.getContext = function(
 			contextType: '2d' | 'bitmaprenderer' | 'webgl' | 'webgl2',
 			options?: CanvasRenderingContext2DSettings | ImageBitmapRenderingContextSettings | WebGLContextAttributes
 		) {
 			if (contextType === '2d') {
-				// Merge willReadFrequently into options (or create new options object)
 				const context2DSettings = (options || {}) as CanvasRenderingContext2DSettings;
 				options = { ...context2DSettings, willReadFrequently: true };
 			}
 			return originalGetContext.call(this, contextType, options);
 		} as typeof HTMLCanvasElement.prototype.getContext;
 
-		// Dynamically import Leaflet only on client side
 		const leafletModule = await import('leaflet');
 		L = leafletModule.default;
 		
-		// Import leaflet.heat plugin (will use patched getContext)
 		await import('leaflet.heat');
-		
-		// Import CSS
 		await import('leaflet/dist/leaflet.css');
 
 		if (!L) return;
 
-		// Initialize map
 		map = L.map(mapContainer, {
 			center: [latitude, longitude],
 			zoom: zoom,
 			zoomControl: false,
-			layers: [] // Initialize empty, we add layers below
+			layers: []
 		});
 
-		// Add zoom control to bottom right
 		L.control.zoom({
 			position: 'bottomright'
 		}).addTo(map);
 
-		// Add CartoDB Positron tile layer (Minimalist B&W)
-		const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+		// Minimalist CartoDB Light
+		L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+			attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
 			maxZoom: 20
 		}).addTo(map);
 
-		// 1. Main Marker (Apartment)
+		// 1. Main Marker (Home)
+		// Use inner wrapper for styling to avoid Leaflet container conflicts
 		const houseIcon = L.divIcon({
-			className: 'bg-slate-900 text-white rounded-full p-2 shadow-xl border-2 border-white',
-			html: ICONS.house,
-			iconSize: [40, 40],
-			iconAnchor: [20, 20],
-			popupAnchor: [0, -20]
+			className: 'bg-transparent border-0', 
+			html: `
+				<div class="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center shadow-xl border-4 border-white">
+					<div class="w-6 h-6">
+						${ICONS.house}
+					</div>
+				</div>
+			`,
+			iconSize: [48, 48],
+			iconAnchor: [24, 24],
+			popupAnchor: [0, -24]
 		});
 
-		const mainMarker = L.marker([latitude, longitude], { icon: houseIcon })
-			.bindPopup(`<div class="p-2 text-center"><strong>${address}</strong><br/>Your Future Home? 🏠</div>`)
+		L.marker([latitude, longitude], { icon: houseIcon })
+			.bindPopup(`<div class="p-2 text-center font-sans"><strong>${address}</strong><br/>Target Location</div>`)
 			.addTo(map)
 			.openPopup();
 
 		// 2. 500m Radius Circle
 		circle = L.circle([latitude, longitude], {
-			color: '#94a3b8', // Slate-400
+			color: '#64748b', // Slate-500
 			fillColor: '#94a3b8',
 			fillOpacity: 0.05,
 			weight: 1,
-			dashArray: '5, 5',
+			dashArray: '6, 6',
 			radius: 500
 		}).addTo(map);
 
-		// Layer Groups - separated by category
-		nuisanceLayer = L.layerGroup().addTo(map); // Temples and factories (noise sources)
-		amenityLayer = L.layerGroup().addTo(map); // YouBike, transport, trash
-		safetyPointsLayer = L.layerGroup(); // Accident hotspots only (not added by default)
-		airQualityLayer = L.layerGroup(); // Air quality markers (placeholder for now, not added by default)
+		// Layer Groups
+		nuisanceLayer = L.layerGroup().addTo(map);
+		amenityLayer = L.layerGroup().addTo(map);
+		safetyPointsLayer = L.layerGroup();
+		airQualityLayer = L.layerGroup();
 		
-		// Initialize visibility states
-		noiseVisible = true; // Heatmap visible by default (Nuisances Sonores)
-		airQualityVisible = false; // Air quality hidden by default (Qualité de l'Air)
-		safetyPointsVisible = false; // Safety points hidden by default (Points de Sécurité)
+		// Initialize visibility
+		noiseVisible = true;
+		airQualityVisible = false;
+		safetyPointsVisible = false;
 
-		// Helper to create custom marker
+		// Custom Marker Creator
 		const createCustomMarker = (poi: PointOfInterest) => {
 			let iconHtml = '';
-			let markerClass = '';
+			let bgClass = '';
 			
-			// Common base classes: rounded circle, white border, shadow, flex center
-			const baseClass = 'rounded-full p-1 shadow-md border-2 border-white flex items-center justify-center text-white';
+			// Base classes for consistent modern look
+			const baseClass = 'w-full h-full rounded-full border-[3px] border-white shadow-lg flex items-center justify-center text-white bg-opacity-95';
 
 			switch (poi.type) {
 				// Nuisances
 				case 'temple':
 					iconHtml = ICONS.temple;
-					markerClass = `bg-orange-500 ${baseClass}`;
+					bgClass = 'bg-orange-500';
 					break;
 				case 'accident':
 					iconHtml = ICONS.accident;
-					markerClass = `bg-red-600 ${baseClass}`;
+					bgClass = 'bg-red-500';
 					break;
 				case 'factory':
 					iconHtml = ICONS.factory;
-					markerClass = `bg-slate-600 ${baseClass}`;
+					bgClass = 'bg-slate-600';
 					break;
 				// Amenities
 				case 'youbike':
 					iconHtml = ICONS.youbike;
-					markerClass = `bg-emerald-500 ${baseClass}`;
+					bgClass = 'bg-emerald-500';
 					break;
 				case 'transport':
 					iconHtml = ICONS.transport;
-					markerClass = `bg-blue-500 ${baseClass}`;
+					bgClass = 'bg-blue-500';
 					break;
 				case 'trash':
 					iconHtml = ICONS.trash;
-					markerClass = `bg-lime-600 ${baseClass}`;
+					bgClass = 'bg-amber-500';
 					break;
 			}
 
 			const customIcon = L.divIcon({
-				className: markerClass,
-				html: iconHtml,
-				iconSize: [32, 32], // Slightly larger for better visibility
-				iconAnchor: [16, 16],
-				popupAnchor: [0, -16]
+				className: 'bg-transparent border-0', // Clear Leaflet default box
+				html: `
+					<div class="${baseClass} ${bgClass}">
+						<div class="w-5 h-5">
+							${iconHtml}
+						</div>
+					</div>
+				`,
+				iconSize: [40, 40], // Slightly larger for better visibility
+				iconAnchor: [20, 20],
+				popupAnchor: [0, -20]
 			});
 
-			const marker = L.marker([poi.latitude, poi.longitude], { icon: customIcon })
+			return L.marker([poi.latitude, poi.longitude], { icon: customIcon })
 				.bindTooltip(`
-					<div class="font-bold text-sm">${poi.label}</div>
-					${poi.details ? `<div class="text-xs text-gray-500">${poi.details}</div>` : ''}
+					<div class="font-bold text-sm font-sans">${poi.label}</div>
+					${poi.details ? `<div class="text-xs text-slate-500 font-sans">${poi.details}</div>` : ''}
 				`, { 
 					direction: 'top', 
-					offset: [0, -10], 
-					opacity: 0.9,
-					className: 'px-2 py-1'
+					offset: [0, -12], 
+					opacity: 1,
+					className: 'px-3 py-2 rounded-lg shadow-lg border-0'
 				});
-			
-			return marker;
 		};
 
-		// 3. Populate Layers - separate by category
+		// Populate Layers
 		pointsOfInterest.forEach(poi => {
 			const marker = createCustomMarker(poi);
 			if (poi.type === 'accident') {
-				// Safety points go to their own layer
 				marker.addTo(safetyPointsLayer);
 			} else if (['temple', 'factory'].includes(poi.type)) {
-				// Noise sources (temples, factories) go to nuisance layer
 				marker.addTo(nuisanceLayer);
 			} else {
-				// Amenities (youbike, transport, trash)
 				marker.addTo(amenityLayer);
 			}
 		});
-
-		// Store heatmap layer reference for visibility control
-		// The DynamicHeatmapLayer component will handle its own visibility
 	});
 	
-	// React to layer visibility changes via bindable props
+	// React to visibility changes
 	$effect(() => {
 		if (!map) return;
 		
-		// Air Quality Layer
+		// Air Quality
 		if (airQualityVisible && airQualityLayer && !map.hasLayer(airQualityLayer)) {
 			map.addLayer(airQualityLayer);
 		} else if (!airQualityVisible && airQualityLayer && map.hasLayer(airQualityLayer)) {
 			map.removeLayer(airQualityLayer);
 		}
 		
-		// Safety Points Layer
+		// Safety Points
 		if (safetyPointsVisible && safetyPointsLayer && !map.hasLayer(safetyPointsLayer)) {
 			map.addLayer(safetyPointsLayer);
 		} else if (!safetyPointsVisible && safetyPointsLayer && map.hasLayer(safetyPointsLayer)) {
@@ -304,28 +297,35 @@
 
 <style>
 	:global(.leaflet-popup-content-wrapper) {
-		border-radius: 8px;
+		border-radius: 12px;
 		padding: 0;
+		box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 	}
 	
 	:global(.leaflet-popup-content) {
 		margin: 0;
-		padding: 8px;
+		padding: 0;
 	}
 	
-	/* Ensure icons are centered */
 	:global(.leaflet-div-icon) {
 		background: transparent;
 		border: none;
 	}
 
 	:global(.leaflet-bottom.leaflet-right) {
-		bottom: 140px !important; /* Remonte franchement au-dessus du dégradé */
+		bottom: 140px !important;
 		right: 20px !important;
 	}
 	
-	/* Hide default layers control if it somehow appears */
 	:global(.leaflet-top.leaflet-right .leaflet-control-layers) {
 		display: none !important;
+	}
+	
+	/* Tooltip styling */
+	:global(.leaflet-tooltip) {
+		border-radius: 8px;
+		border: none !important;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+		padding: 0 !important;
 	}
 </style>

@@ -8,6 +8,7 @@
 	import NativeAdCard from '$lib/components/NativeAdCard.svelte';
 	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 	import InfoHint from '$lib/components/InfoHint.svelte';
+	import EnvironmentRisksCard from '$lib/components/EnvironmentRisksCard.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { PageData } from './$types';
 	
@@ -592,88 +593,7 @@
 				</Card.Root>
 
 				<!-- Environment & Risks Section -->
-				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
-					<Card.Header class="pb-4 relative">
-						<div class="flex items-center gap-3">
-							<div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-								<Wind class="w-5 h-5" strokeWidth={1.5} />
-							</div>
-							<Card.Title>{m.report_env_title()}</Card.Title>
-						</div>
-						<div class="absolute top-6 right-6">
-							<InfoHint 
-								title="Indice de Qualité de l'Air" 
-								description="En dessous de 50 : Excellent. Au-dessus de 100 : Risqué pour les asthmatiques et enfants."
-							/>
-						</div>
-					</Card.Header>
-
-					<Card.Content>
-						{#if scoreData.detailedData?.airQuality}
-							{@const airData = scoreData.detailedData.airQuality}
-							{@const isIndus = scoreData.detailedData?.zoning?.adjacentIndustrial}
-							{@const zoningLabel = isIndus ? 'Industrial Nearby' : scoreData.detailedData?.zoning?.adjacentHighIntensityCommercial ? 'Commercial Area' : m.zoning_residential()}
-							
-							{@const aqiStyles = airData.aqi <= 50 
-								? { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', label: 'Good' }
-								: airData.aqi <= 100 
-								? { bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-200', label: 'Moderate' }
-								: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', label: 'Unhealthy' }
-							}
-							
-							<div class="grid grid-cols-2 gap-4 h-full">
-								<!-- Left Column: Main Indicator -->
-								<div class="flex flex-col items-center justify-center p-4 rounded-3xl {aqiStyles.bg} h-full min-h-[160px]">
-									<span class="text-xs uppercase font-bold text-slate-500 mb-2 tracking-wider">Air Quality Index</span>
-									<span class="text-5xl font-bold {aqiStyles.text} mb-2">{airData.aqi}</span>
-									<Badge variant="outline" class="bg-white/80 {aqiStyles.border} {aqiStyles.text} shadow-sm px-3 py-1 text-xs font-semibold">
-										{aqiStyles.label}
-									</Badge>
-								</div>
-
-								<!-- Right Column: Details List -->
-								<div class="flex flex-col justify-between py-1 gap-4">
-									
-									<!-- PM2.5 -->
-									<div class="space-y-1.5">
-										<div class="flex items-center gap-2">
-											<Wind class="w-4 h-4 text-slate-400" strokeWidth={2} />
-											<span class="text-sm font-medium text-slate-700">PM2.5</span>
-											<span class="ml-auto text-sm font-bold text-slate-900">{airData.pm25} µg/m³</span>
-										</div>
-										<Progress value={Math.min((airData.pm25 / 50) * 100, 100)} class="h-1.5 bg-slate-100" />
-									</div>
-
-									<!-- Dengue -->
-									<div class="flex items-center justify-between">
-										<div class="flex items-center gap-2">
-											<Bug class="w-4 h-4 text-slate-400" strokeWidth={2} />
-											<span class="text-sm font-medium text-slate-700">Dengue</span>
-										</div>
-										{#if airData.dengueRisk}
-											<Badge variant="destructive" class="text-[10px] px-2 py-0.5 h-6">Risk</Badge>
-										{:else}
-											<Badge variant="outline" class="text-[10px] px-2 py-0.5 h-6 bg-emerald-50 text-emerald-700 border-emerald-200">Safe</Badge>
-										{/if}
-									</div>
-
-									<!-- Zoning -->
-									<div class="flex items-center justify-between">
-										<div class="flex items-center gap-2">
-											<Building class="w-4 h-4 text-slate-400" strokeWidth={2} />
-											<span class="text-sm font-medium text-slate-700">Zoning</span>
-										</div>
-										<span class="text-xs font-medium text-slate-600 text-right truncate max-w-[100px]" title={zoningLabel}>
-											{zoningLabel}
-										</span>
-									</div>
-								</div>
-							</div>
-						{:else}
-							<p class="text-sm text-slate-500">Air quality data not available</p>
-						{/if}
-					</Card.Content>
-				</Card.Root>
+				<EnvironmentRisksCard detailedData={scoreData.detailedData} />
 
 				<!-- Safety Section -->
 				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
