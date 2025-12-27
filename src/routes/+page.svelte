@@ -48,18 +48,8 @@
 	// Receive data from load function
 	let { data }: { data: PageData } = $props();
 
-	// Make the component reactive to locale changes
-	let locale = $state(getLocale());
-	
-	// Update locale when navigation happens
-	afterNavigate(() => {
-		locale = getLocale();
-	});
-	
-	// Watch for locale changes
-	$effect(() => {
-		locale = getLocale();
-	});
+	// Derived locale - automatically updates when locale changes
+	const locale = $derived(getLocale());
 
 	interface ScoreData {
 		address: string;
@@ -75,33 +65,21 @@
 		detailedData?: any;
 	}
 
+	// Derived state from server data
+	const scoreData = $derived(data.scoreData ?? null);
+	const error = $derived(data.error ?? null);
+	
+	// Local UI state
 	let address = $state('');
 	let loading = $state(false);
-	// Initialize with server data if available - use derived to react to data changes
-	let scoreData = $state<ScoreData | null>(null);
-	let error = $state<string | null>(null);
-	let pointsOfInterest = $state<PointOfInterest[]>([]);
-
-	// Initialize and react to data changes from load function
+	
+	// Sync address with URL parameter when data changes
 	$effect(() => {
-		// Update from server data
-		if (data.scoreData) {
-			scoreData = data.scoreData;
-			pointsOfInterest = generatePOIs(data.scoreData);
-			error = null;
-		} else if (data.error) {
-			error = data.error;
-			scoreData = null;
-		} else {
-			scoreData = null;
-			error = null;
-		}
-		
-		// Update address from URL if present
-		if (data.address) {
-			address = data.address;
-		}
+		address = data.address ?? '';
 	});
+	
+	// Derived points of interest from score data
+	const pointsOfInterest = $derived(scoreData ? generatePOIs(scoreData) : []);
 
 	function generatePOIs(data: ScoreData): PointOfInterest[] {
 		const pois: PointOfInterest[] = [];
@@ -208,53 +186,48 @@
 		if (!browser) return;
 		
 		const targetAddress = queryAddress || address;
-		if (queryAddress) address = queryAddress;
-
 		if (!targetAddress.trim()) {
-			error = m.error_please_enter_address();
+			// Error will be shown via data.error from server
 			return;
 		}
 
-		// Use SvelteKit navigation to update URL and trigger load function
-		// This ensures SSR works correctly and URL is shareable
 		loading = true;
-		error = null;
 
 		try {
-			// Navigate to the same page with address parameter
-			// This will trigger the load function in +page.server.ts
 			await goto(`/?address=${encodeURIComponent(targetAddress)}`, {
 				noScroll: false,
 				keepFocus: false,
 				invalidateAll: true
 			});
 		} catch (err) {
-			error = err instanceof Error ? err.message : m.error_occurred();
+			// Navigation error - will be handled by error state
+			console.error('Navigation error:', err);
+		} finally {
+			// Reset loading after navigation completes
 			loading = false;
 		}
 	}
 
 
-	function getScoreColor(score: number): string {
+	// Derived utility functions
+	const getScoreColor = (score: number): string => {
 		if (score >= 80) return 'text-emerald-700';
 		if (score >= 60) return 'text-yellow-600';
 		return 'text-orange-600';
-	}
+	};
 	
-	function getScoreLabel(score: number): string {
+	const getScoreLabel = (score: number): string => {
 		if (score >= 80) return m.score_excellent();
 		if (score >= 60) return m.score_good();
 		if (score >= 40) return m.score_fair();
 		return m.score_poor();
-	}
+	};
 
-	function getTeaserSummary(data: ScoreData): string {
-		// Logic to determine summary string params
-		// "This address is {noiseLevel}, but watch out for {concern}."
-		
-		let noiseLevel = m.teaser_noise_status_moderate();
-		if (data.scores.noise >= 80) noiseLevel = m.teaser_noise_status_quiet();
-		else if (data.scores.noise < 60) noiseLevel = m.teaser_noise_status_noisy();
+	const getTeaserSummary = (data: ScoreData): string => {
+		const noiseLevel = 
+			data.scores.noise >= 80 ? m.teaser_noise_status_quiet() :
+			data.scores.noise < 60 ? m.teaser_noise_status_noisy() :
+			m.teaser_noise_status_moderate();
 
 		// Find the lowest score among other categories to highlight as concern
 		const concerns = [
@@ -267,12 +240,10 @@
 		const concern = concerns[0].score < 70 ? concerns[0].name : m.teaser_concern_none();
 
 		return m.teaser_summary({ noiseLevel, concern });
-	}
+	};
 
 	async function shareResult() {
 		if (!browser || !scoreData) return;
-		
-		const shareUrl = `${window.location.origin}${page.url.pathname}?address=${encodeURIComponent(scoreData.address)}&share=true`;
 		
 		// Try native share API first (mobile)
 		if (navigator.share) {
@@ -284,65 +255,53 @@
 				});
 				return;
 			} catch (err) {
-				// User cancelled or error occurred
+				// User cancelled or error occurred - fall through to clipboard
 			}
 		}
 		
 		// Fallback: copy to clipboard
 		try {
 			await navigator.clipboard.writeText(shareUrl);
-			// Show toast notification (simple alert for now)
 			alert(m.share_copied());
 		} catch (err) {
-			// Fallback: show URL in prompt
+			// Final fallback: show URL in prompt
 			prompt(m.share_copy_link(), shareUrl);
 		}
 	}
 
 
-	// Generate share URL
-	function getShareUrl(): string {
-		if (!scoreData) return '';
-		if (browser) {
-			return `${window.location.origin}${page.url.pathname}?address=${encodeURIComponent(scoreData.address)}&share=true`;
-		}
-		// Fallback for SSR
-		return page.url.origin + page.url.pathname + `?address=${encodeURIComponent(scoreData.address)}&share=true`;
-	}
+	// Derived values for meta tags
+	const shareUrl = $derived(
+		scoreData 
+			? `${page.url.origin}${page.url.pathname}?address=${encodeURIComponent(scoreData.address)}&share=true`
+			: ''
+	);
 
-	// Generate meta description
-	function getMetaDescription(): string {
-		if (!scoreData) return m.landing_subtitle();
-		const score = Math.round(scoreData.scores.overall);
-		return `${scoreData.address} - ${m.livability_score()}: ${score}/100. ${getTeaserSummary(scoreData)}`;
-	}
+	const metaDescription = $derived(
+		scoreData
+			? `${scoreData.address} - ${m.livability_score()}: ${Math.round(scoreData.scores.overall)}/100. ${getTeaserSummary(scoreData)}`
+			: m.landing_subtitle()
+	);
 
-	// Get base URL for meta tags
-	function getBaseUrl(): string {
-		if (browser) {
-			return window.location.origin;
-		}
-		// Fallback for SSR
-		return page.url.origin;
-	}
+	const baseUrl = $derived(page.url.origin);
 </script>
 
 <svelte:head>
 	{#if scoreData}
 		<!-- Open Graph / LINE meta tags for sharing -->
 		<meta property="og:title" content="{scoreData.address} - {m.livability_score()}: {Math.round(scoreData.scores.overall)}/100" />
-		<meta property="og:description" content={getMetaDescription()} />
-		<meta property="og:url" content={getShareUrl()} />
-		<meta property="og:image" content="{getBaseUrl()}/og-image.png" />
+		<meta property="og:description" content={metaDescription} />
+		<meta property="og:url" content={shareUrl} />
+		<meta property="og:image" content="{baseUrl}/og-image.png" />
 		<meta property="og:type" content="website" />
 		<!-- LINE specific meta tags -->
-		<meta property="line:image" content="{getBaseUrl()}/og-image.png" />
-		<meta property="line:description" content={getMetaDescription()} />
+		<meta property="line:image" content="{baseUrl}/og-image.png" />
+		<meta property="line:description" content={metaDescription} />
 		<!-- Twitter Card -->
 		<meta name="twitter:card" content="summary_large_image" />
 		<meta name="twitter:title" content="{scoreData.address} - {m.livability_score()}" />
-		<meta name="twitter:description" content={getMetaDescription()} />
-		<meta name="twitter:image" content="{getBaseUrl()}/og-image.png" />
+		<meta name="twitter:description" content={metaDescription} />
+		<meta name="twitter:image" content="{baseUrl}/og-image.png" />
 	{:else}
 		<!-- Default meta tags for landing page -->
 		<meta property="og:title" content={m.landing_title()} />
@@ -393,11 +352,14 @@
 				<button
 					onclick={() => searchAddress()}
 					disabled={loading}
-					class="absolute right-3 top-3 bottom-3 aspect-square text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl flex items-center justify-center transition-colors"
+					class="absolute right-3 top-3 bottom-3 aspect-square text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
 					aria-label={m.search_button()}
 				>
 					{#if loading}
-						<span class="loading loading-spinner loading-sm"></span>
+						<svg class="animate-spin h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
 					{:else}
 						<Search class="h-5 w-5 text-emerald-600" strokeWidth={2.5} />
 					{/if}
