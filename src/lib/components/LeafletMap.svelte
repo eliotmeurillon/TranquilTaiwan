@@ -1,9 +1,18 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import * as m from '$lib/paraglide/messages';
 	import DynamicHeatmapLayer from './DynamicHeatmapLayer.svelte';
+
+	// Define PointOfInterest type
+	export type PointOfInterest = {
+		type: 'temple' | 'accident' | 'factory' | 'youbike' | 'transport' | 'trash';
+		latitude: number;
+		longitude: number;
+		label: string;
+		details?: string;
+	};
 
 	interface Props {
 		latitude: number;
@@ -26,6 +35,7 @@
 				historicalDengueCases: number;
 			};
 		};
+		pointsOfInterest?: PointOfInterest[];
 	}
 
 	let { 
@@ -35,42 +45,39 @@
 		noiseScore = 0,
 		airQualityScore = 0,
 		zoom = 15,
-		detailedData
+		detailedData,
+		pointsOfInterest = []
 	}: Props = $props();
 
 	let mapContainer: HTMLDivElement;
 	let map: any = $state(null);
 	let L: any = $state(null);
-	let controlsElement: any = null;
 	
-	let noisePoints: [number, number, number][] = $state([]);
-	let airQualityPoints: [number, number, number][] = $state([]);
-	let isNoiseVisible = $state(true);
-	let isAirVisible = $state(true);
-
-	const isoplethGradient = {
-		0.0: '#000080', // Dark Blue
-		0.2: '#0000CD', // Medium Blue
-		0.4: '#008000', // Green
-		0.6: '#FFFF00', // Yellow
-		0.8: '#FFA500', // Orange
-		1.0: '#FF0000'  // Red
+	// Icon SVG paths
+	const ICONS = {
+		house: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
+		temple: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>`, // Bell
+		accident: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>`, // AlertTriangle
+		factory: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M17 18h1" /><path d="M12 18h1" /><path d="M7 18h1" /></svg>`,
+		youbike: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5" /><circle cx="5.5" cy="17.5" r="3.5" /><circle cx="15" cy="5" r="1" /><path d="M12 17.5V14l-3-3 4-3 2 3h2" /></svg>`, // Bike
+		transport: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="3" rx="2" /><path d="M4 11h16" /><path d="M12 3v8" /><path d="m8 19-2 3" /><path d="m18 22-2-3" /><path d="M8 15h0" /><path d="M16 15h0" /></svg>`, // Train
+		trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>`
 	};
 
-	const noiseGradient = isoplethGradient;
-	const airGradient = isoplethGradient;
-	
-	// Watch for locale changes to update map labels
-	afterNavigate(() => {
-		if (controlsElement && map) {
-			// Update labels when locale changes
-			if (controlsElement.noiseLabel) {
-				controlsElement.noiseLabel.textContent = m.map_heatmap_toggle_noise();
-			}
-			if (controlsElement.airLabel) {
-				controlsElement.airLabel.textContent = m.map_heatmap_toggle_air();
-			}
-		}
+	let heatmapPoints = $derived.by(() => {
+		const points: [number, number, number][] = [];
+		
+		pointsOfInterest.forEach(poi => {
+			let intensity = 0.5;
+			if (poi.type === 'temple') intensity = 0.8;
+			else if (poi.type === 'accident') intensity = 0.9;
+			else if (poi.type === 'factory') intensity = 0.7;
+			else if (poi.type === 'transport') intensity = 0.4;
+			
+			points.push([poi.latitude, poi.longitude, intensity]);
+		});
+		
+		return points;
 	});
 
 	onMount(async () => {
@@ -80,19 +87,8 @@
 		const leafletModule = await import('leaflet');
 		L = leafletModule.default;
 		
-		// Import leaflet.heat
-		await import('leaflet.heat');
-		
 		// Import CSS
 		await import('leaflet/dist/leaflet.css');
-
-		// Fix for default marker icons in Leaflet with Vite
-		delete (L.Icon.Default.prototype as any)._getIconUrl;
-		L.Icon.Default.mergeOptions({
-			iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-			iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-			shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-		});
 
 		if (!L) return;
 
@@ -100,29 +96,123 @@
 		map = L.map(mapContainer, {
 			center: [latitude, longitude],
 			zoom: zoom,
-			zoomControl: true
+			zoomControl: true,
+			layers: [] // Initialize empty, we add layers below
 		});
 
-		// Add OpenStreetMap tile layer
-		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-			maxZoom: 19
+		// Add CartoDB Positron tile layer (Minimalist B&W)
+		const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+			maxZoom: 20
 		}).addTo(map);
 
-		// Add marker for the address
-		const marker = L.marker([latitude, longitude])
+		// 1. Main Marker (Apartment)
+		const houseIcon = L.divIcon({
+			className: 'bg-slate-900 text-white rounded-full p-2 shadow-xl border-2 border-white',
+			html: ICONS.house,
+			iconSize: [40, 40],
+			iconAnchor: [20, 20],
+			popupAnchor: [0, -20]
+		});
+
+		const mainMarker = L.marker([latitude, longitude], { icon: houseIcon })
+			.bindPopup(`<div class="p-2 text-center"><strong>${address}</strong><br/>Your Future Home? 🏠</div>`)
 			.addTo(map)
-			.bindPopup(`<div class="p-2"><strong>${address}</strong></div>`)
 			.openPopup();
 
-		// Generate heatmap data points using real data if available
-		noisePoints = generateNoiseHeatmapPoints(latitude, longitude, noiseScore, detailedData?.noise);
-		airQualityPoints = generateAirQualityHeatmapPoints(latitude, longitude, airQualityScore, detailedData?.airQuality);
+		// 2. 500m Radius Circle
+		const circle = L.circle([latitude, longitude], {
+			color: '#94a3b8', // Slate-400
+			fillColor: '#94a3b8',
+			fillOpacity: 0.05,
+			weight: 1,
+			dashArray: '5, 5',
+			radius: 500
+		}).addTo(map);
 
-		// Add toggle controls
-		addHeatmapControls();
+		// Layer Groups
+		const nuisanceLayer = L.layerGroup().addTo(map);
+		const amenityLayer = L.layerGroup().addTo(map);
 
-		// Cleanup on destroy
+		// Helper to create custom marker
+		const createCustomMarker = (poi: PointOfInterest) => {
+			let iconHtml = '';
+			let markerClass = '';
+			
+			// Common base classes: rounded circle, white border, shadow, flex center
+			const baseClass = 'rounded-full p-1 shadow-md border-2 border-white flex items-center justify-center text-white';
+
+			switch (poi.type) {
+				// Nuisances
+				case 'temple':
+					iconHtml = ICONS.temple;
+					markerClass = `bg-orange-500 ${baseClass}`;
+					break;
+				case 'accident':
+					iconHtml = ICONS.accident;
+					markerClass = `bg-red-600 ${baseClass}`;
+					break;
+				case 'factory':
+					iconHtml = ICONS.factory;
+					markerClass = `bg-slate-600 ${baseClass}`;
+					break;
+				// Amenities
+				case 'youbike':
+					iconHtml = ICONS.youbike;
+					markerClass = `bg-emerald-500 ${baseClass}`;
+					break;
+				case 'transport':
+					iconHtml = ICONS.transport;
+					markerClass = `bg-blue-500 ${baseClass}`;
+					break;
+				case 'trash':
+					iconHtml = ICONS.trash;
+					markerClass = `bg-lime-600 ${baseClass}`;
+					break;
+			}
+
+			const customIcon = L.divIcon({
+				className: markerClass,
+				html: iconHtml,
+				iconSize: [32, 32], // Slightly larger for better visibility
+				iconAnchor: [16, 16],
+				popupAnchor: [0, -16]
+			});
+
+			const marker = L.marker([poi.latitude, poi.longitude], { icon: customIcon })
+				.bindTooltip(`
+					<div class="font-bold text-sm">${poi.label}</div>
+					${poi.details ? `<div class="text-xs text-gray-500">${poi.details}</div>` : ''}
+				`, { 
+					direction: 'top', 
+					offset: [0, -10], 
+					opacity: 0.9,
+					className: 'px-2 py-1'
+				});
+			
+			return marker;
+		};
+
+		// 3. Populate Layers
+		pointsOfInterest.forEach(poi => {
+			const marker = createCustomMarker(poi);
+			if (['temple', 'accident', 'factory'].includes(poi.type)) {
+				marker.addTo(nuisanceLayer);
+			} else {
+				marker.addTo(amenityLayer);
+			}
+		});
+
+		// 4. Layers Control
+		const overlayMaps = {
+			"Nuisances & Dangers ⚠️": nuisanceLayer,
+			"Amenities 🚲": amenityLayer,
+			"500m Radius": circle
+		};
+
+		L.control.layers(null, overlayMaps, { position: 'topright' }).addTo(map);
+
+		// Cleanup
 		return () => {
 			if (map) {
 				map.remove();
@@ -130,197 +220,22 @@
 			}
 		};
 	});
-
-	function generateNoiseHeatmapPoints(
-		centerLat: number,
-		centerLng: number,
-		score: number,
-		noiseData?: { level: number; nearbyTemples: number; majorRoads: number; trafficIntensity: number }
-	): [number, number, number][] {
-		const points: [number, number, number][] = [];
-		
-		// Use real noise data if available, otherwise use score
-		let baseIntensity: number;
-		if (noiseData) {
-			// Convert noise level (dB) to intensity (higher dB = higher intensity)
-			// Normalize: 40-80 dB range -> 0.2-0.6 intensity (increased from 0.1-0.4)
-			const normalizedLevel = Math.min(0.6, Math.max(0.2, (noiseData.level - 40) / 80));
-			baseIntensity = normalizedLevel;
-			
-			// Add points for nearby temples (sources of noise)
-			for (let i = 0; i < noiseData.nearbyTemples; i++) {
-				const angle = (Math.PI * 2 * i) / Math.max(1, noiseData.nearbyTemples);
-				const distance = 0.002 + Math.random() * 0.003; // ~200-500m
-				const lat = centerLat + distance * Math.cos(angle);
-				const lng = centerLng + distance * Math.sin(angle);
-				points.push([lat, lng, baseIntensity * 0.5]); // Increased intensity factor
-			}
-			
-			// Add points for major roads (sources of noise)
-			for (let i = 0; i < noiseData.majorRoads; i++) {
-				const angle = (Math.PI * 2 * i) / Math.max(1, noiseData.majorRoads);
-				const distance = 0.001 + Math.random() * 0.003; // ~100-400m
-				const lat = centerLat + distance * Math.cos(angle);
-				const lng = centerLng + distance * Math.sin(angle);
-				points.push([lat, lng, baseIntensity * 0.4]); // Increased intensity factor
-			}
-			
-			// Add intensity based on traffic
-			const trafficIntensity = Math.min(0.5, noiseData.trafficIntensity / 150);
-			baseIntensity = Math.max(baseIntensity, trafficIntensity);
-		} else {
-			// Fallback: use score (lower score = higher intensity for heatmap)
-			// Cap at 0.6 max intensity (increased from 0.4)
-			baseIntensity = Math.min(0.6, Math.max(0.2, (100 - score) / 200));
-		}
-		
-		// Add center point
-		points.push([centerLat, centerLng, baseIntensity * 0.7]); // Increased center intensity
-		
-		// Generate surrounding points
-		const count = noiseData ? 8 : 10;
-		for (let i = 0; i < count; i++) {
-			const angle = (Math.PI * 2 * i) / count;
-			const distance = 0.002 + Math.random() * 0.004; // ~200-600m
-			const lat = centerLat + distance * Math.cos(angle);
-			const lng = centerLng + distance * Math.sin(angle);
-			const intensity = baseIntensity * (0.3 + Math.random() * 0.3); // Increased intensity range
-			
-			points.push([lat, lng, intensity]);
-		}
-		
-		return points;
-	}
-
-	function generateAirQualityHeatmapPoints(
-		centerLat: number,
-		centerLng: number,
-		score: number,
-		airQualityData?: { pm25: number; aqi: number; dengueRisk: boolean; historicalDengueCases: number }
-	): [number, number, number][] {
-		const points: [number, number, number][] = [];
-		
-		// Use real air quality data if available, otherwise use score
-		let baseIntensity: number;
-		if (airQualityData) {
-			// Convert AQI to intensity (higher AQI = higher intensity for heatmap)
-			// Normalize: 0-200 AQI range -> 0.2-0.6 intensity
-			const aqiIntensity = Math.min(0.6, Math.max(0.2, airQualityData.aqi / 350));
-			
-			// Convert PM2.5 to intensity (higher PM2.5 = higher intensity)
-			// Normalize: 0-50 μg/m³ range -> 0.2-0.6 intensity
-			const pm25Intensity = Math.min(0.6, Math.max(0.2, airQualityData.pm25 / 100));
-			
-			// Combine both metrics
-			baseIntensity = (aqiIntensity + pm25Intensity) / 2;
-			
-			// Add intensity for dengue risk areas
-			if (airQualityData.dengueRisk) {
-				baseIntensity = Math.min(0.6, baseIntensity + 0.1);
-			}
-		} else {
-			// Fallback: use score (lower score = higher intensity for heatmap)
-			// Cap at 0.6 max intensity
-			baseIntensity = Math.min(0.6, Math.max(0.2, (100 - score) / 200));
-		}
-		
-		// Add center point
-		points.push([centerLat, centerLng, baseIntensity * 0.7]); // Increased center intensity
-		
-		// Generate surrounding points
-		const count = airQualityData ? 8 : 10;
-		for (let i = 0; i < count; i++) {
-			const angle = (Math.PI * 2 * i) / count;
-			const distance = 0.002 + Math.random() * 0.004; // ~200-600m
-			const lat = centerLat + distance * Math.cos(angle);
-			const lng = centerLng + distance * Math.sin(angle);
-			const intensity = baseIntensity * (0.3 + Math.random() * 0.3); // Increased intensity range
-			
-			points.push([lat, lng, intensity]);
-		}
-		
-		return points;
-	}
-
-	function addHeatmapControls() {
-		if (!map || !L) return;
-
-		// Create control container
-		const controls = document.createElement('div');
-		controls.className = 'leaflet-control leaflet-bar';
-		controls.style.cssText = 'background: white; padding: 10px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4);';
-
-		// Noise heatmap toggle
-		const noiseToggle = document.createElement('div');
-		noiseToggle.className = 'mb-2';
-		const noiseCheckbox = document.createElement('input');
-		noiseCheckbox.type = 'checkbox';
-		noiseCheckbox.id = 'noise-heatmap-toggle';
-		noiseCheckbox.checked = isNoiseVisible;
-		noiseCheckbox.className = 'checkbox checkbox-sm mr-2';
-		const noiseLabel = document.createElement('label');
-		noiseLabel.htmlFor = 'noise-heatmap-toggle';
-		noiseLabel.textContent = m.map_heatmap_toggle_noise();
-		noiseLabel.className = 'cursor-pointer';
-		noiseToggle.appendChild(noiseCheckbox);
-		noiseToggle.appendChild(noiseLabel);
-
-		// Air quality heatmap toggle
-		const airToggle = document.createElement('div');
-		const airCheckbox = document.createElement('input');
-		airCheckbox.type = 'checkbox';
-		airCheckbox.id = 'air-heatmap-toggle';
-		airCheckbox.checked = isAirVisible;
-		airCheckbox.className = 'checkbox checkbox-sm mr-2';
-		const airLabel = document.createElement('label');
-		airLabel.htmlFor = 'air-heatmap-toggle';
-		airLabel.textContent = m.map_heatmap_toggle_air();
-		airLabel.className = 'cursor-pointer';
-		airToggle.appendChild(airCheckbox);
-		airToggle.appendChild(airLabel);
-		
-		// Store references for updating labels
-		(controls as any).noiseLabel = noiseLabel;
-		(controls as any).airLabel = airLabel;
-
-		controls.appendChild(noiseToggle);
-		controls.appendChild(airToggle);
-		
-		// Store reference for locale updates
-		controlsElement = controls;
-
-		// Add event listeners
-		noiseCheckbox.addEventListener('change', (e) => {
-			isNoiseVisible = (e.target as HTMLInputElement).checked;
-		});
-
-		airCheckbox.addEventListener('change', (e) => {
-			isAirVisible = (e.target as HTMLInputElement).checked;
-		});
-
-		// Add to map using Leaflet control system
-		const customControl = L.control({ position: 'topleft' });
-		customControl.onAdd = () => controls;
-		customControl.addTo(map);
-	}
 </script>
 
-<div class="w-full h-full">
+<div class="w-full h-full relative">
 	<div bind:this={mapContainer} class="w-full h-full rounded-lg z-0"></div>
 	{#if map && L}
 		<DynamicHeatmapLayer 
 			{map} 
 			leaflet={L} 
-			points={noisePoints} 
-			gradient={noiseGradient}
-			isVisible={isNoiseVisible} 
-		/>
-		<DynamicHeatmapLayer 
-			{map} 
-			leaflet={L} 
-			points={airQualityPoints} 
-			gradient={airGradient}
-			isVisible={isAirVisible} 
+			points={heatmapPoints}
+			gradient={{
+				0.4: 'blue',
+				0.6: 'cyan',
+				0.7: 'lime',
+				0.8: 'yellow',
+				1.0: 'red'
+			}}
 		/>
 	{/if}
 </div>
@@ -335,5 +250,10 @@
 		margin: 0;
 		padding: 8px;
 	}
+	
+	/* Ensure icons are centered */
+	:global(.leaflet-div-icon) {
+		background: transparent;
+		border: none;
+	}
 </style>
-

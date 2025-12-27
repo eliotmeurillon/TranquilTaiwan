@@ -74,7 +74,6 @@
 	"teaser_unlock_button": "Unlock Full Report (NT$ 99)",
 	"teaser_unlock_subtext": "Includes: Factory details, accident history & future zoning",
 	"teaser_card_locked_view": "View",
-	"report_unlocked_banner": "Report unlocked. Link sent by email.",
 	"report_noise_title": "Noise Nuisance",
 	"report_decibels_label": "Average Level: {value}dB",
 	"report_noise_item_temple": "Temple Proximity: {distance}m ({risk})",

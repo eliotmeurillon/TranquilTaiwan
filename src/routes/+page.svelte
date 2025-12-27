@@ -5,6 +5,15 @@
 	import LeafletMap from '$lib/components/LeafletMap.svelte';
 	import * as m from '$lib/paraglide/messages';
 
+	// Define PointOfInterest type locally
+	type PointOfInterest = {
+		type: 'temple' | 'accident' | 'factory' | 'youbike' | 'transport' | 'trash';
+		latitude: number;
+		longitude: number;
+		label: string;
+		details?: string;
+	};
+
 	// Make the component reactive to locale changes
 	let locale = $state(getLocale());
 	
@@ -38,6 +47,108 @@
 	let scoreData = $state<ScoreData | null>(null);
 	let error = $state<string | null>(null);
 	let showPremium = $state(false);
+	let pointsOfInterest = $state<PointOfInterest[]>([]);
+
+	function generatePOIs(data: ScoreData): PointOfInterest[] {
+		const pois: PointOfInterest[] = [];
+		const { latitude, longitude } = data.coordinates;
+		const { detailedData } = data;
+
+		if (!detailedData) return pois;
+
+		// Helper to generate random point in radius
+		const randomPoint = (minDist: number, maxDist: number) => {
+			const r = (minDist + Math.random() * (maxDist - minDist)) / 111320; // convert meters to degrees approx
+			const theta = Math.random() * 2 * Math.PI;
+			return {
+				lat: latitude + r * Math.cos(theta),
+				lng: longitude + r * Math.sin(theta)
+			};
+		};
+
+		// 1. Temples (Nuisance)
+		if (detailedData.noise?.nearbyTemples) {
+			for (let i = 0; i < detailedData.noise.nearbyTemples; i++) {
+				const pt = randomPoint(100, 400);
+				pois.push({
+					type: 'temple',
+					latitude: pt.lat,
+					longitude: pt.lng,
+					label: 'Local Temple',
+					details: 'Risk: High Noise (Festivals)'
+				});
+			}
+		}
+
+		// 2. Accident Hotspots (Danger)
+		if (detailedData.safety?.accidentHotspots) {
+			for (let i = 0; i < detailedData.safety.accidentHotspots; i++) {
+				const pt = randomPoint(50, 300);
+				pois.push({
+					type: 'accident',
+					latitude: pt.lat,
+					longitude: pt.lng,
+					label: 'Accident Blackspot',
+					details: 'High Collision Rate'
+				});
+			}
+		}
+
+		// 3. Factories (Pollution)
+		if (detailedData.zoning?.adjacentIndustrial) {
+			const pt = randomPoint(200, 500);
+			pois.push({
+				type: 'factory',
+				latitude: pt.lat,
+				longitude: pt.lng,
+				label: 'Industrial Zone',
+				details: 'Potential Air/Noise Issues'
+			});
+		}
+
+		// 4. YouBike (Amenity)
+		if (detailedData.convenience?.youbikeStations) {
+			for (let i = 0; i < detailedData.convenience.youbikeStations; i++) {
+				const pt = randomPoint(100, 450);
+				pois.push({
+					type: 'youbike',
+					latitude: pt.lat,
+					longitude: pt.lng,
+					label: 'YouBike Station',
+					details: `${Math.floor(Math.random() * 20)} bikes available`
+				});
+			}
+		}
+
+		// 5. Transport (Amenity) - Mock based on score if no count
+		const transportCount = Math.ceil(detailedData.convenience?.publicTransportScore / 30) || 1;
+		for (let i = 0; i < transportCount; i++) {
+			const pt = randomPoint(200, 500);
+			pois.push({
+				type: 'transport',
+				latitude: pt.lat,
+				longitude: pt.lng,
+				label: 'Bus/MRT Station',
+				details: 'Public Transit Access'
+			});
+		}
+
+		// 6. Trash Points (Amenity)
+		if (detailedData.convenience?.trashCollectionPoints) {
+			for (let i = 0; i < detailedData.convenience.trashCollectionPoints; i++) {
+				const pt = randomPoint(100, 300);
+				pois.push({
+					type: 'trash',
+					latitude: pt.lat,
+					longitude: pt.lng,
+					label: 'Trash Collection',
+					details: 'Evening Collection Point'
+				});
+			}
+		}
+
+		return pois;
+	}
 
 	async function searchAddress(queryAddress?: string) {
 		if (!browser) return;
@@ -54,6 +165,7 @@
 		error = null;
 		scoreData = null;
 		showPremium = false;
+		pointsOfInterest = [];
 
 		try {
 			const response = await fetch(`/api/score?address=${encodeURIComponent(targetAddress)}`);
@@ -65,6 +177,7 @@
 
 			const data = await response.json();
 			scoreData = data;
+			pointsOfInterest = generatePOIs(data);
 		} catch (err) {
 			error = err instanceof Error ? err.message : m.error_occurred();
 		} finally {
@@ -91,6 +204,7 @@
 			const data = await response.json();
 			scoreData = data;
 			showPremium = true;
+			pointsOfInterest = generatePOIs(data);
 		} catch (err) {
 			error = err instanceof Error ? err.message : m.error_occurred();
 		} finally {
@@ -242,25 +356,33 @@
 {:else if showPremium}
 	<!-- Detailed Report View -->
 	<div class="min-h-screen bg-slate-50 pb-32">
-		<!-- Success Banner -->
-		<div class="bg-emerald-100 text-emerald-800 text-sm py-2 px-4 text-center font-medium sticky top-0 z-50">
-			{m.report_unlocked_banner()}
-		</div>
-
-		<!-- Top Bar -->
-		<div class="sticky top-9 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-3">
-			<button onclick={() => showPremium = false} class="btn btn-circle btn-sm btn-ghost text-slate-500" aria-label={m.teaser_back()}>
-				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-				</svg>
-			</button>
-			<div class="flex-1 font-bold text-slate-800 truncate">
-				{scoreData.address}
+		<!-- Floating Header (Integrated) -->
+		<div class="fixed top-4 left-4 right-4 z-40 pointer-events-none">
+			<div class="bg-white/90 backdrop-blur-xl shadow-sm border border-slate-200/50 rounded-full px-2 py-2 flex items-center gap-3 pointer-events-auto max-w-2xl mx-auto">
+				<button onclick={() => showPremium = false} class="btn btn-circle btn-sm btn-ghost hover:bg-slate-100 text-slate-500 transition-colors" aria-label={m.teaser_back()}>
+					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+					</svg>
+				</button>
+				<div class="flex-1 min-w-0 pr-4">
+					<div class="font-bold text-slate-800 truncate text-sm leading-tight">
+						{scoreData.address}
+					</div>
+					<div class="text-[10px] text-emerald-600 font-medium uppercase tracking-wide leading-none mt-0.5">
+						Premium Report Unlocked
+					</div>
+				</div>
+				<div class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center shrink-0">
+					<!-- User/Menu Placeholder -->
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+						<path fill-rule="evenodd" d="M3 6.75A.75.75 0 013.75 6h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 6.75zM3 12a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 12zm0 5.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" clip-rule="evenodd" />
+					</svg>
+				</div>
 			</div>
 		</div>
 
 		<!-- Map Section -->
-		<div class="h-[40vh] min-h-[300px] w-full bg-slate-100 relative z-0">
+		<div class="h-[45vh] min-h-[350px] w-full bg-slate-100 relative z-0">
 			<LeafletMap
 				latitude={scoreData.coordinates.latitude}
 				longitude={scoreData.coordinates.longitude}
@@ -269,53 +391,86 @@
 				airQualityScore={scoreData.scores.airQuality}
 				zoom={15}
 				detailedData={scoreData.detailedData}
+				pointsOfInterest={pointsOfInterest}
 			/>
 		</div>
 
-		<div class="px-4 py-6 space-y-6">
+		<div class="px-4 py-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 			<!-- Noise Section -->
-			<section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-				<div class="flex items-center gap-3 mb-4">
-					<div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-						</svg>
+			<section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 h-full">
+				<div class="flex items-center justify-between mb-4">
+					<div class="flex items-center gap-3">
+						<div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+							</svg>
+						</div>
+						<h2 class="text-xl font-bold text-slate-800">{m.report_noise_title()}</h2>
 					</div>
-					<h2 class="text-xl font-bold text-slate-800">{m.report_noise_title()}</h2>
+					<div class="badge {scoreData.detailedData?.noise?.level >= 60 ? 'badge-warning' : 'badge-success'} badge-outline font-bold">
+						{Math.round(scoreData.detailedData?.noise?.level || 0)} dB
+					</div>
 				</div>
 				
 				{#if scoreData.detailedData?.noise}
 					{@const noiseData = scoreData.detailedData.noise}
-					<div class="mb-4">
-						<div class="flex justify-between items-center mb-1">
-							<span class="text-sm font-medium text-slate-600">{m.report_decibels_label({ value: Math.round(noiseData.level) })}</span>
+					<div class="mb-6">
+						<div class="mb-2 flex justify-between items-baseline">
+							<span class="text-sm font-bold text-slate-700">
+								Noise Level: 
+								<span class="{noiseData.level >= 60 ? 'text-orange-600' : 'text-emerald-600'}">
+									{noiseData.level >= 80 ? 'Very Noisy' : noiseData.level >= 60 ? 'Noisy' : 'Quiet'}
+								</span>
+							</span>
 						</div>
-						<progress class="progress progress-success w-full h-3" value={noiseData.level} max="100"></progress>
+						
+						<!-- Gradient Gauge -->
+						<div class="relative h-4 w-full bg-slate-100 rounded-full overflow-hidden">
+							<div class="absolute inset-0 bg-gradient-to-r from-emerald-400 via-yellow-400 to-red-500 opacity-80"></div>
+							<!-- Cursor -->
+							<div 
+								class="absolute top-0 bottom-0 w-1 bg-black shadow-[0_0_4px_rgba(0,0,0,0.5)] z-10 transition-all duration-500"
+								style="left: {Math.min(Math.max(noiseData.level, 0), 100)}%"
+							></div>
+						</div>
+						<div class="flex justify-between text-[10px] text-slate-400 mt-1 px-1">
+							<span>Quiet</span>
+							<span>Noisy</span>
+						</div>
 					</div>
 
-					<ul class="space-y-3 text-sm text-slate-600">
+					<ul class="space-y-3 text-sm">
 						{#if noiseData.nearbyTemples > 0}
-							<li class="flex items-start gap-2">
-								<span class="text-emerald-500 mt-1">•</span>
-								{m.report_noise_item_temple({ 
-									distance: noiseData.nearbyTemples, 
-									risk: noiseData.nearbyTemples > 1 ? m.risk_high() : m.risk_low() 
-								})}
+							<li class="flex items-start gap-3 p-2 rounded-lg bg-orange-50 text-orange-700">
+								<span class="mt-0.5">⚠️</span>
+								<div>
+									<span class="font-semibold block">Temple Nearby</span>
+									<span class="text-xs opacity-90">{m.report_noise_item_temple({ 
+										distance: noiseData.nearbyTemples, 
+										risk: noiseData.nearbyTemples > 1 ? m.risk_high() : m.risk_low() 
+									})}</span>
+								</div>
 							</li>
 						{/if}
 						{#if noiseData.majorRoads > 0}
-							<li class="flex items-start gap-2">
-								<span class="text-emerald-500 mt-1">•</span>
-								{m.report_noise_item_road({ 
-									distance: noiseData.majorRoads * 200, 
-									risk: noiseData.majorRoads > 1 ? m.risk_high() : m.risk_low() 
-								})}
+							<li class="flex items-start gap-3 p-2 rounded-lg bg-orange-50 text-orange-700">
+								<span class="mt-0.5">🚗</span>
+								<div>
+									<span class="font-semibold block">Major Roads Nearby</span>
+									<span class="text-xs opacity-90">{m.report_noise_item_road({ 
+										distance: noiseData.majorRoads * 200, 
+										risk: noiseData.majorRoads > 1 ? m.risk_high() : m.risk_low() 
+									})}</span>
+								</div>
 							</li>
 						{/if}
 						{#if noiseData.trafficIntensity > 0}
-							<li class="flex items-start gap-2">
-								<span class="text-emerald-500 mt-1">•</span>
-								<span>Traffic intensity: {Math.round(noiseData.trafficIntensity)}</span>
+							<li class="flex items-start gap-3 p-2 rounded-lg {noiseData.trafficIntensity > 50 ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'}">
+								<span class="mt-0.5">{noiseData.trafficIntensity > 50 ? '🔊' : '🔉'}</span>
+								<div>
+									<span class="font-semibold block">Traffic Intensity</span>
+									<span class="text-xs opacity-90">{Math.round(noiseData.trafficIntensity)}/100</span>
+								</div>
 							</li>
 						{/if}
 					</ul>
@@ -325,7 +480,7 @@
 			</section>
 
 			<!-- Environment & Risks Section -->
-			<section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+			<section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 h-full">
 				<div class="flex items-center gap-3 mb-4">
 					<div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
 						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
@@ -337,33 +492,41 @@
 
 				{#if scoreData.detailedData?.airQuality}
 					{@const airData = scoreData.detailedData.airQuality}
-					<div class="bg-slate-50 rounded-xl p-4 mb-4 text-center">
-						<div class="text-sm text-slate-500 mb-1">{m.report_aqi_label()}</div>
-						<div class="text-3xl font-bold text-emerald-600">
-							{airData.aqi} 
-							<span class="text-sm font-normal text-emerald-600">
-								({airData.aqi <= 50 ? 'Good' : airData.aqi <= 100 ? 'Moderate' : airData.aqi <= 150 ? 'Unhealthy for Sensitive' : 'Unhealthy'})
-							</span>
+					<div class="flex items-center gap-4 mb-6">
+						<!-- Big AQI Badge -->
+						<div class="flex-shrink-0 w-24 h-24 rounded-2xl {airData.aqi <= 50 ? 'bg-emerald-100 text-emerald-800' : airData.aqi <= 100 ? 'bg-yellow-100 text-yellow-800' : 'bg-orange-100 text-orange-800'} flex flex-col items-center justify-center p-2">
+							<span class="text-xs font-bold uppercase opacity-70 mb-1">AQI</span>
+							<span class="text-4xl font-bold tracking-tighter">{airData.aqi}</span>
 						</div>
-						{#if airData.pm25}
-							<div class="text-xs text-slate-500 mt-1">PM2.5: {airData.pm25} μg/m³</div>
-						{/if}
+						
+						<div class="flex-1 space-y-2">
+							<div class="font-bold text-lg text-slate-800 leading-tight">
+								{airData.aqi <= 50 ? 'Good' : airData.aqi <= 100 ? 'Moderate' : airData.aqi <= 150 ? 'Unhealthy' : 'Very Unhealthy'}
+							</div>
+							{#if airData.pm25}
+								<div class="text-sm text-slate-500">PM2.5: <span class="font-medium text-slate-700">{airData.pm25} μg/m³</span></div>
+							{/if}
+						</div>
 					</div>
 
-					<div class="flex flex-wrap gap-2">
-						<div class="badge badge-lg {airData.dengueRisk ? 'bg-orange-100 text-orange-800' : 'bg-emerald-100 text-emerald-800'} border-none py-3">
-							{m.report_dengue_risk_label({ status: airData.dengueRisk ? m.risk_high() : m.risk_none() })}
+					<div class="space-y-3">
+						<div class="flex items-center justify-between p-3 rounded-xl {airData.dengueRisk ? 'bg-orange-50 text-orange-800' : 'bg-slate-50 text-slate-600'}">
+							<span class="font-medium text-sm flex items-center gap-2">
+								<span class="text-lg">🦟</span> Dengue Risk
+							</span>
+							<span class="font-bold text-sm">{airData.dengueRisk ? m.risk_high() : m.risk_none()}</span>
 						</div>
+
 						{#if scoreData.detailedData?.zoning}
 							{@const zoningData = scoreData.detailedData.zoning}
-							<div class="badge badge-lg bg-blue-100 text-blue-800 border-none py-3">
-								{m.report_zoning_label({ 
-									status: zoningData.adjacentIndustrial 
-										? 'Industrial' 
-										: zoningData.adjacentHighIntensityCommercial 
-										? 'High-Intensity Commercial' 
-										: m.zoning_residential() 
-								})}
+							{@const isIndus = zoningData.adjacentIndustrial}
+							<div class="flex items-center justify-between p-3 rounded-xl {isIndus ? 'bg-orange-50 text-orange-800' : 'bg-slate-50 text-slate-600'}">
+								<span class="font-medium text-sm flex items-center gap-2">
+									<span class="text-lg">🏭</span> Zoning
+								</span>
+								<span class="font-bold text-sm text-right">
+									{isIndus ? 'Industrial Nearby' : zoningData.adjacentHighIntensityCommercial ? 'High-Intensity Commercial' : m.zoning_residential()}
+								</span>
 							</div>
 						{/if}
 					</div>
@@ -458,34 +621,65 @@
 				</section>
 			{/if}
 
-			<!-- Action Buttons -->
-			<div class="pt-4 space-y-3">
-				<button class="btn btn-outline btn-block border-slate-200 normal-case font-normal text-slate-600 hover:bg-slate-50 hover:border-slate-300">
-					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
-					</svg>
-					{m.report_share_button()}
-				</button>
-				
-				<div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center justify-between">
-					<span class="text-sm text-indigo-800 font-medium">{m.report_save_promo()}</span>
-					<button class="btn btn-sm btn-indigo bg-indigo-600 hover:bg-indigo-700 text-white border-none">Save</button>
-				</div>
-			</div>
+		</div>
+	</div>
+	
+	<!-- Floating Action Bar -->
+	<div class="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none">
+		<div class="bg-white/80 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border border-slate-200/50 rounded-2xl p-3 flex items-center justify-between pointer-events-auto max-w-2xl mx-auto gap-4">
+			<!-- Secondary Action: Share -->
+			<button class="btn btn-ghost btn-square text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors" aria-label={m.report_share_button()}>
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+				</svg>
+			</button>
+
+			<!-- Primary Action: Save Report -->
+			<button class="btn bg-emerald-700 hover:bg-emerald-800 text-white border-none shadow-lg shadow-emerald-700/20 px-6 rounded-xl flex-1 max-w-xs flex items-center gap-2 normal-case font-bold text-base transition-transform active:scale-95">
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+				</svg>
+				Save Report
+			</button>
 		</div>
 	</div>
 {:else}
 	<!-- Teaser Results View (Mobile First) -->
 	<div class="min-h-screen bg-slate-50 pb-32">
 		<!-- Top Bar -->
-		<div class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-3">
-			<button onclick={() => scoreData = null} class="btn btn-circle btn-sm btn-ghost text-slate-500" aria-label={m.teaser_back()}>
-				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-				</svg>
-			</button>
-			<div class="flex-1 font-bold text-slate-800 truncate">
-				{scoreData.address}
+		<div class="fixed top-4 left-4 right-4 z-40 pointer-events-none">
+			<div class="bg-white/90 backdrop-blur-xl shadow-sm border border-slate-200/50 rounded-full px-2 py-2 flex items-center gap-3 pointer-events-auto max-w-2xl mx-auto">
+				<button onclick={() => scoreData = null} class="btn btn-circle btn-sm btn-ghost hover:bg-slate-100 text-slate-500 transition-colors" aria-label={m.teaser_back()}>
+					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+					</svg>
+				</button>
+				<div class="flex-1 font-bold text-slate-800 truncate text-sm leading-tight pr-4">
+					{scoreData.address}
+				</div>
+			</div>
+		</div>
+
+		<div class="px-4 py-3 bg-slate-50 relative z-10 pt-20">
+			<div class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-5 border border-slate-100">
+				<!-- Left: Ring Progress -->
+				<div class="relative flex-shrink-0">
+					<div class="radial-progress {getProgressClass(scoreData.scores.overall)}" style="--value: {scoreData.scores.overall}; --size: 5rem; --thickness: 0.5rem; color: currentColor;">
+						<span class="text-2xl font-bold text-slate-800 tracking-tight">
+							{Math.round(scoreData.scores.overall)}
+						</span>
+					</div>
+				</div>
+				
+				<!-- Right: Verdict & Summary -->
+				<div class="flex-1 min-w-0">
+					<h2 class="text-xl font-bold text-slate-800 leading-tight mb-1">
+						{getScoreLabel(scoreData.scores.overall)}
+					</h2>
+					<p class="text-sm text-slate-500 leading-snug line-clamp-2">
+						{getTeaserSummary(scoreData)}
+					</p>
+				</div>
 			</div>
 		</div>
 
@@ -499,32 +693,12 @@
 				airQualityScore={scoreData.scores.airQuality}
 				zoom={15}
 				detailedData={scoreData.detailedData}
+				pointsOfInterest={pointsOfInterest}
 			/>
 			<!-- Gradient Overlay to blend map into content if desired, or keep sharp -->
 		</div>
 
 		<div class="px-4 -mt-6 relative z-10 space-y-6">
-			<!-- Global Score (The Hook) -->
-			<div class="bg-white rounded-3xl shadow-lg p-4 text-center animate-fade-in-up">
-				<div class="relative inline-flex items-center justify-center mb-2">
-					<div class="radial-progress {getProgressClass(scoreData.scores.overall)}" style="--value: {scoreData.scores.overall}; --size: 7rem; --thickness: 0.6rem; color: currentColor;">
-						<span class="text-4xl font-bold text-slate-800 tracking-tighter">
-							{Math.round(scoreData.scores.overall)}<span class="text-lg text-slate-400 font-normal">/100</span>
-						</span>
-					</div>
-				</div>
-				
-				<div class="mb-2">
-					<h2 class="text-lg font-bold text-slate-800">
-						{m.teaser_livability_label({ scoreLabel: getScoreLabel(scoreData.scores.overall) })}
-					</h2>
-				</div>
-				
-				<p class="text-sm text-slate-500 leading-relaxed px-2">
-					{getTeaserSummary(scoreData)}
-				</p>
-			</div>
-
 			<!-- Details Grid (Partially Blurred) -->
 			<div class="grid grid-cols-2 gap-3">
 				<!-- Card 1: Noise (Free) -->

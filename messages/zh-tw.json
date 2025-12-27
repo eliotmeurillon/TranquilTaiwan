@@ -74,7 +74,6 @@
 	"teaser_unlock_button": "解鎖完整報告 (NT$ 99)",
 	"teaser_unlock_subtext": "包含：工廠詳情、事故歷史及未來分區",
 	"teaser_card_locked_view": "查看",
-	"report_unlocked_banner": "報告已解鎖。連結已發送至您的電子郵件。",
 	"report_noise_title": "噪音滋擾",
 	"report_decibels_label": "平均水平：{value}dB",
 	"report_noise_item_temple": "鄰近寺廟：{distance}公尺 ({risk})",
