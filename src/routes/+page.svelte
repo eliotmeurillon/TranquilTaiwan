@@ -16,6 +16,9 @@
 	import Badge from "$lib/components/ui/badge/badge.svelte";
 	import Progress from "$lib/components/ui/progress/progress.svelte";
 	import Separator from "$lib/components/ui/separator/separator.svelte";
+	import ProgressChart from "$lib/components/charts/ProgressChart.svelte";
+	import NoiseLineChart from "$lib/components/charts/NoiseLineChart.svelte";
+	import SafetyRadarChart from "$lib/components/charts/SafetyRadarChart.svelte";
 
 	// Icons
 	import { 
@@ -488,7 +491,7 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 				
 				<!-- Noise Section -->
-				<Card.Root class="h-full border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
 					<Card.Header class="pb-4">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-3">
@@ -520,18 +523,8 @@
 									</span>
 								</div>
 								
-								<!-- Progress Bar with Custom Color Logic -->
-								<!-- 100% = Very Noisy (Red) -->
-								<div class="space-y-1">
-									<Progress 
-										value={noiseData.level} 
-										class="h-3 [&>div]:{noiseData.level >= 80 ? 'bg-red-500' : noiseData.level >= 60 ? 'bg-orange-500' : 'bg-emerald-500'}" 
-									/>
-									<div class="flex justify-between text-[10px] text-slate-400 font-medium px-0.5">
-										<span>Calme</span>
-										<span>Bruyant</span>
-									</div>
-								</div>
+								<!-- Chart.js Line Chart -->
+								<NoiseLineChart noiseLevel={noiseData.level} />
 							</div>
 
 							<div class="space-y-3">
@@ -575,7 +568,7 @@
 				</Card.Root>
 
 				<!-- Environment & Risks Section -->
-				<Card.Root class="h-full border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
 					<Card.Header class="pb-4">
 						<div class="flex items-center gap-3">
 							<div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -661,7 +654,7 @@
 				</Card.Root>
 
 				<!-- Safety Section -->
-				<Card.Root class="h-full border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
 					<Card.Header class="pb-4">
 						<div class="flex items-center gap-3">
 							<div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
@@ -675,25 +668,8 @@
 						{#if scoreData.detailedData?.safety}
 							{@const safetyData = scoreData.detailedData.safety}
 							<div class="mb-6 space-y-4">
-								<div class="space-y-2">
-									<div class="flex justify-between items-center">
-										<span class="text-xs font-medium text-slate-400 uppercase tracking-wider">
-											{m.report_safety_burglary()}
-										</span>
-										<span class="font-bold text-sm text-slate-900">{Math.round(safetyData.pedestrianSafety)}%</span>
-									</div>
-									<!-- 100% = Safe (Green), 0% = Dangerous (Red) -->
-									<div class="space-y-1">
-										<Progress 
-											value={safetyData.pedestrianSafety} 
-											class="h-3 [&>div]:{safetyData.pedestrianSafety >= 80 ? 'bg-emerald-500' : safetyData.pedestrianSafety >= 60 ? 'bg-yellow-500' : 'bg-red-500'}" 
-										/>
-										<div class="flex justify-between text-[10px] text-slate-400 font-medium px-0.5">
-											<span>Dangereux</span>
-											<span>Sûr</span>
-										</div>
-									</div>
-								</div>
+								<!-- Chart.js Radar Chart -->
+								<SafetyRadarChart safetyData={safetyData} />
 								
 								<div class="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
 									<AlertCircle class="w-4 h-4 text-slate-400" strokeWidth={1.5} />
@@ -723,7 +699,7 @@
 				<!-- Convenience Section (Grid Layout) -->
 				{#if scoreData.detailedData?.convenience}
 					{@const convenienceData = scoreData.detailedData.convenience}
-					<Card.Root class="h-full border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+					<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
 						<Card.Header class="pb-4">
 							<div class="flex items-center gap-3">
 								<div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
