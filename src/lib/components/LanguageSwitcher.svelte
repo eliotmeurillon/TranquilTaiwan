@@ -3,6 +3,11 @@
 	import { page } from '$app/state';
 	import { goto, invalidateAll } from '$app/navigation';
 	import * as m from '$lib/paraglide/messages';
+	import { Globe, Check } from 'lucide-svelte';
+	
+	// Shadcn Components
+	import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+	import { Button } from "$lib/components/ui/button";
 
 	// Make locale reactive
 	let currentLocale = $state(getLocale());
@@ -41,53 +46,29 @@
 	}
 </script>
 
-<div class="dropdown dropdown-end">
-	<button type="button" tabindex="0" class="btn btn-ghost btn-sm gap-2" aria-label={m.language_switch()}>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-5 w-5"
-			fill="none"
-			viewBox="0 0 24 24"
-			stroke="currentColor"
-			aria-hidden="true"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
-			/>
-		</svg>
-		<span class="hidden sm:inline">{m.language_switch()}</span>
-		<span class="sm:hidden">{currentLocale.toUpperCase()}</span>
-	</button>
-	<ul class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow-lg">
+<DropdownMenu.Root>
+	<DropdownMenu.Trigger>
+		{#snippet child({ props })}
+			<button
+				{...props}
+				class="h-9 w-9 rounded-full bg-white/70 backdrop-blur-md shadow-sm hover:bg-white text-slate-600 inline-flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+			>
+				<Globe class="h-5 w-5" strokeWidth={1.5} />
+				<span class="sr-only">{m.language_switch()}</span>
+			</button>
+		{/snippet}
+	</DropdownMenu.Trigger>
+	<DropdownMenu.Content align="end" class="min-w-[150px]">
 		{#each locales as locale}
-			<li>
-				<button
-					onclick={() => switchLanguage(locale)}
-					class="btn btn-ghost btn-sm justify-start {currentLocale === locale ? 'btn-active' : ''}"
-				>
-					{getLocaleName(locale)}
-					{#if currentLocale === locale}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-4 w-4 ml-auto"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M5 13l4 4L19 7"
-							/>
-						</svg>
-					{/if}
-				</button>
-			</li>
+			<DropdownMenu.Item 
+				onclick={() => switchLanguage(locale)}
+				class="justify-between cursor-pointer"
+			>
+				{getLocaleName(locale)}
+				{#if currentLocale === locale}
+					<Check class="h-4 w-4 text-emerald-600" />
+				{/if}
+			</DropdownMenu.Item>
 		{/each}
-	</ul>
-</div>
-
+	</DropdownMenu.Content>
+</DropdownMenu.Root>

@@ -109,7 +109,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			scoreRecord = newScore;
 		}
 		
-		// Return free score (without detailed raw data)
+		// Return complete score with all detailed data (free service)
 		return json({
 			address: addressRecord.address,
 			coordinates: {
@@ -124,7 +124,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				convenience: parseFloat(scoreRecord.convenienceScore || '0'),
 				zoningRisk: parseFloat(scoreRecord.zoningRiskScore || '0')
 			},
-			premium: false // Free version
+			detailedData: scoreRecord.rawData
 		});
 		
 	} catch (err) {
