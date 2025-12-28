@@ -28,7 +28,9 @@
 		"d3-contour": "^4.0.2",
 		"leaflet": "^1.9.4",
 		"leaflet.heat": "^0.2.0",
-		"postgres": "^3.4.7"
+		"postgres": "^3.4.7",
+		"posthog-js": "^1.310.1",
+		"posthog-node": "^5.18.0"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",
