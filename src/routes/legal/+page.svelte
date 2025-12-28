@@ -1,16 +1,50 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import * as Card from "$lib/components/ui/card";
 	import { Button } from "$lib/components/ui/button";
 	import { ArrowLeft, Shield, FileText, Scale, Mail } from "lucide-svelte";
+	import { generateSEO } from '$lib/utils/seo';
 </script>
 
+{@const seoData = generateSEO(
+	{
+		title: m.legal_title(),
+		description: m.legal_privacy_intro(),
+		image: `${page.url.origin}/logo.png`
+	},
+	page
+)}
+
 <svelte:head>
-	<title>{m.legal_title()} - {m.app_title()}</title>
-	<meta name="description" content={m.legal_privacy_intro()} />
+	<!-- Primary Meta Tags -->
+	<title>{seoData.title} - {m.app_title()}</title>
+	<meta name="title" content="{seoData.title}" />
+	<meta name="description" content={seoData.description} />
+	<link rel="canonical" href={seoData.canonical} />
+	<meta name="robots" content={seoData.robots} />
+
+	<!-- Open Graph / Facebook -->
+	<meta property="og:type" content={seoData.og.type} />
+	<meta property="og:url" content={seoData.og.url} />
+	<meta property="og:title" content={seoData.og.title} />
+	<meta property="og:description" content={seoData.og.description} />
+	<meta property="og:image" content={seoData.og.image} />
+	<meta property="og:site_name" content={seoData.og.siteName} />
+
+	<!-- Twitter -->
+	<meta name="twitter:card" content={seoData.twitter.card} />
+	<meta name="twitter:url" content={seoData.og.url} />
+	<meta name="twitter:title" content={seoData.twitter.title} />
+	<meta name="twitter:description" content={seoData.twitter.description} />
+	<meta name="twitter:image" content={seoData.twitter.image} />
+
+	<!-- LINE -->
+	<meta property="line:image" content={seoData.line.image} />
+	<meta property="line:description" content={seoData.line.description} />
 </svelte:head>
 
 <div class="min-h-screen bg-[#FAFAFA] relative font-sans text-[#1D1D1F]">

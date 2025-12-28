@@ -11,6 +11,8 @@
 	import EnvironmentRisksCard from '$lib/components/EnvironmentRisksCard.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import type { PageData } from './$types';
+	import { generateSEO } from '$lib/utils/seo';
+	import StructuredData from '$lib/components/StructuredData.svelte';
 	
 	// Shadcn Components
 	import { Button } from "$lib/components/ui/button";
@@ -297,32 +299,67 @@
 			: m.landing_subtitle()
 	);
 
-	const baseUrl = $derived(page.url.origin);
+	// Generate SEO data
+	const seoData = $derived(
+		scoreData
+			? generateSEO(
+					{
+						title: `${scoreData.address} - ${m.livability_score()}: ${Math.round(scoreData.scores.overall)}/100`,
+						description: metaDescription,
+						image: `${page.url.origin}/logo.png`,
+						url: shareUrl
+					},
+					page
+				)
+			: generateSEO(
+					{
+						title: m.landing_title(),
+						description: m.landing_subtitle(),
+						image: `${page.url.origin}/logo.png`
+					},
+					page
+				)
+	);
 </script>
 
 <svelte:head>
-	{#if scoreData}
-		<!-- Open Graph / LINE meta tags for sharing -->
-		<meta property="og:title" content="{scoreData.address} - {m.livability_score()}: {Math.round(scoreData.scores.overall)}/100" />
-		<meta property="og:description" content={metaDescription} />
-		<meta property="og:url" content={shareUrl} />
-		<meta property="og:image" content="{baseUrl}/og-image.png" />
-		<meta property="og:type" content="website" />
-		<!-- LINE specific meta tags -->
-		<meta property="line:image" content="{baseUrl}/og-image.png" />
-		<meta property="line:description" content={metaDescription} />
-		<!-- Twitter Card -->
-		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content="{scoreData.address} - {m.livability_score()}" />
-		<meta name="twitter:description" content={metaDescription} />
-		<meta name="twitter:image" content="{baseUrl}/og-image.png" />
-	{:else}
-		<!-- Default meta tags for landing page -->
-		<meta property="og:title" content={m.landing_title()} />
-		<meta property="og:description" content={m.landing_subtitle()} />
-		<meta property="og:type" content="website" />
-	{/if}
+	<!-- Primary Meta Tags -->
+	<title>{seoData.title} - {m.app_title()}</title>
+	<meta name="title" content="{seoData.title}" />
+	<meta name="description" content={seoData.description} />
+	<link rel="canonical" href={seoData.canonical} />
+	<meta name="robots" content={seoData.robots} />
+
+	<!-- Open Graph / Facebook -->
+	<meta property="og:type" content={seoData.og.type} />
+	<meta property="og:url" content={seoData.og.url} />
+	<meta property="og:title" content={seoData.og.title} />
+	<meta property="og:description" content={seoData.og.description} />
+	<meta property="og:image" content={seoData.og.image} />
+	<meta property="og:site_name" content={seoData.og.siteName} />
+
+	<!-- Twitter -->
+	<meta name="twitter:card" content={seoData.twitter.card} />
+	<meta name="twitter:url" content={seoData.og.url} />
+	<meta name="twitter:title" content={seoData.twitter.title} />
+	<meta name="twitter:description" content={seoData.twitter.description} />
+	<meta name="twitter:image" content={seoData.twitter.image} />
+
+	<!-- LINE -->
+	<meta property="line:image" content={seoData.line.image} />
+	<meta property="line:description" content={seoData.line.description} />
 </svelte:head>
+
+<!-- Structured Data (JSON-LD) for SEO -->
+<StructuredData 
+	seoData={{
+		title: seoData.title,
+		description: seoData.description,
+		image: seoData.og.image
+	}}
+	type={scoreData ? 'WebPage' : 'WebSite'}
+	url={seoData.canonical}
+/>
 
 {#if !scoreData}
 	<!-- Landing Page Layout -->

@@ -4,7 +4,6 @@
 	import { afterNavigate } from '$app/navigation';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
-	import favicon from '$lib/assets/favicon.svg';
 	let { children } = $props();
 
 	// Make locale reactive
@@ -20,8 +19,6 @@
 		currentLocale = getLocale();
 	});
 </script>
-
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <div class="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans antialiased selection:bg-[#007AFF] selection:text-white">
 	<!-- Use locale as key to force re-render when locale changes -->

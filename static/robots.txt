@@ -1,3 +1,11 @@
-# allow crawling everything by default
+# TranquilTaiwan robots.txt
+# Allow crawling everything by default
 User-agent: *
-Disallow:
+Allow: /
+
+# Sitemap location
+Sitemap: https://tranquiltaiwan.com/sitemap.xml
+
+# Disallow admin or private routes if any
+# Disallow: /admin/
+# Disallow: /api/
