@@ -31,11 +31,17 @@
 		// Localize it with the new locale
 		const localizedPath = localizeHref(basePath, { locale: newLocale });
 
+		// Preserve query parameters (search params)
+		const searchParams = page.url.searchParams.toString();
+		const targetUrl = searchParams 
+			? `${localizedPath}?${searchParams}`
+			: localizedPath;
+
 		// Set locale without reload
 		setLocale(newLocale, { reload: false });
 		
-		// Navigate to the new URL
-		await goto(localizedPath, { invalidateAll: true, noScroll: true });
+		// Navigate to the new URL with preserved query parameters
+		await goto(targetUrl, { invalidateAll: true, noScroll: true });
 		
 		// Force invalidation to ensure all components re-render
 		await invalidateAll();
