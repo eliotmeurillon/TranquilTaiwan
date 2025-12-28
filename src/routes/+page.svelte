@@ -30,7 +30,6 @@
 		Share2, 
 		Volume2, 
 		Shield, 
-		Leaf, 
 		Wind, 
 		MapPin, 
 		Bike, 
@@ -367,10 +366,7 @@
 		<!-- Header -->
 		<header class="flex justify-between items-center px-6 py-4 absolute top-0 w-full z-10">
 			<div class="flex items-center gap-2">
-				<div class="w-8 h-8 text-[#007AFF]">
-					<!-- Leaf Icon -->
-					<Leaf class="w-full h-full" strokeWidth={1.5} />
-				</div>
+				<img src="/logo.png" alt="TranquilTaiwan" class="w-8 h-8 object-contain" />
 				<span class="font-bold text-lg text-[#1D1D1F] tracking-tight">TranquilTaiwan</span>
 			</div>
 			<!-- Login removed, Language Switcher added -->
@@ -519,7 +515,7 @@
 
 		<!-- 2. Header (Transparent) -->
 		<header class="fixed top-0 left-0 w-full z-50 p-4 flex justify-between items-center pointer-events-none">
-			<div class="pointer-events-auto">
+			<div class="pointer-events-auto flex items-center gap-3">
 				<Button 
 					variant="outline" 
 					size="icon" 
@@ -529,6 +525,9 @@
 				>
 					<ArrowLeft class="w-5 h-5 text-[#1D1D1F]" strokeWidth={2} />
 				</Button>
+				<a href="/" class="flex items-center gap-2">
+					<img src="/logo.png" alt="TranquilTaiwan" class="w-8 h-8 object-contain" />
+				</a>
 			</div>
 			<div class="pointer-events-auto">
 				<LanguageSwitcher />
