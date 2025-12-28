@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { ChartJS } from './chart-config';
 	import type { ChartConfiguration } from 'chart.js';
+	import * as m from '$lib/paraglide/messages';
 
 	let { 
 		noiseLevel = 0 // Base noise level for generating mock data
@@ -46,8 +47,7 @@
 		if (!canvasElement) return;
 
 		const { hours, data } = generateMockData(noiseLevel);
-		const peakHour = getPeakHour(data, hours);
-
+		
 		// Create gradient for fill
 		const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
 		if (!ctx) return;
@@ -62,7 +62,7 @@
 				labels: hours,
 				datasets: [
 					{
-						label: 'Niveau sonore (dB)',
+						label: m.chart_noise_label(),
 						data: data,
 						borderColor: '#FF9500', // System Orange
 						backgroundColor: gradient,
@@ -175,7 +175,7 @@
 	const peakHour = $derived(getPeakHour(currentData.data, currentData.hours));
 	const isQuietAfter22h = $derived(currentData.data[5] > currentData.data[6]); // 20h > 24h
 	const message = $derived(
-		`Pic de bruit à ${peakHour}${peakHour === '16h' || peakHour === '20h' ? ' (Sortie de bureaux)' : ''}. ${isQuietAfter22h ? 'Calme après 22h.' : ''}`
+		`${m.chart_noise_peak({ hour: peakHour })} ${peakHour === '16h' || peakHour === '20h' ? m.chart_noise_rush_hour() : ''}. ${isQuietAfter22h ? m.chart_noise_quiet_night() : ''}`
 	);
 </script>
 

@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { ChartJS } from './chart-config';
 	import type { ChartConfiguration } from 'chart.js';
+	import * as m from '$lib/paraglide/messages';
 
 	let { 
 		safetyData
@@ -19,7 +20,13 @@
 	// Generate safety metrics based on safetyData
 	const generateSafetyMetrics = (data: typeof safetyData) => {
 		// Labels: Cambriolage, Accidents, Vandalisme, Éclairage public, Police
-		const labels = ['Cambriolage', 'Accidents', 'Vandalisme', 'Éclairage public', 'Police'];
+		const labels = [
+			m.chart_radar_burglary(), 
+			m.chart_radar_accidents(), 
+			m.chart_radar_vandalism(), 
+			m.chart_radar_lighting(), 
+			m.chart_radar_police()
+		];
 		
 		// Dataset 1: Ce Quartier (based on actual safety data)
 		// Higher values = better safety (inverse logic for some metrics)
@@ -52,7 +59,7 @@
 				labels: labels,
 				datasets: [
 					{
-						label: 'Ce lieu',
+						label: m.chart_radar_this_place(),
 						data: quartierData,
 						backgroundColor: 'rgba(52, 199, 89, 0.2)', // System Green with 0.2 opacity
 						borderColor: '#34C759', // System Green
@@ -65,7 +72,7 @@
 						pointHoverRadius: 6
 					},
 					{
-						label: 'Moyenne Ville',
+						label: m.chart_radar_city_avg(),
 						data: moyenneTaipei,
 						backgroundColor: 'rgba(142, 142, 147, 0.2)', // System Gray with 0.2 opacity
 						borderColor: '#8E8E93', // System Gray

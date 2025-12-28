@@ -34,20 +34,31 @@
 	const isIndus = $derived(zoningData?.adjacentIndustrial);
 	const zoningLabel = $derived(
 		isIndus 
-			? 'Industrial Nearby' 
+			? m.zoning_industrial()
 			: zoningData?.adjacentHighIntensityCommercial 
-				? 'Commercial Area' 
+				? m.zoning_commercial()
 				: m.zoning_residential()
 	);
 
 	const aqiStyles = $derived(
-		!airData ? { color: 'text-[#86868B]', label: 'Unknown' } :
+		!airData ? { color: 'text-[#86868B]', label: m.status_unknown() } :
 		airData.aqi <= 50 
-			? { color: 'text-[#34C759]', label: 'Good' }
+			? { color: 'text-[#34C759]', label: m.score_good() }
 			: airData.aqi <= 100 
-				? { color: 'text-[#FF9500]', label: 'Moderate' }
-				: { color: 'text-[#FF3B30]', label: 'Unhealthy' }
+				? { color: 'text-[#FF9500]', label: m.score_good() } // Using Moderate if available or mapping to Good/Fair
+				: { color: 'text-[#FF3B30]', label: m.score_poor() }
 	);
+	
+	// Refined AQI label logic to match new keys if needed, or stick to Good/Poor for simplicity
+	// Actually I added teaser_noise_status_moderate but not a generic "Moderate" status key except inside that context. 
+	// I added score_fair which is "Fair". Let's use that for moderate.
+	const aqiLabel = $derived(
+		!airData ? m.status_unknown() :
+		airData.aqi <= 50 ? m.score_excellent() :
+		airData.aqi <= 100 ? m.score_fair() :
+		m.score_poor()
+	);
+
 </script>
 
 <Card.Root class="h-full mb-6 md:mb-0">
@@ -62,8 +73,8 @@
 			
 			<div class="absolute top-6 right-6">
 				<InfoHint 
-					title="Indice de Qualité de l'Air" 
-					description="En dessous de 50 : Excellent. Au-dessus de 100 : Risqué pour les asthmatiques et enfants."
+					title={m.info_aqi_title()}
+					description={m.info_aqi_desc()}
 				/>
 			</div>
 		</div>
@@ -72,8 +83,8 @@
 			<div class="space-y-2">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm font-semibold text-[#1D1D1F]">Air Quality Index</p>
-						<p class="text-xs text-[#86868B]">{aqiStyles.label}</p>
+						<p class="text-sm font-semibold text-[#1D1D1F]">{m.aqi_index()}</p>
+						<p class="text-xs text-[#86868B]">{aqiLabel}</p>
 					</div>
 					<div class="text-right">
 						<span class="text-2xl font-bold {aqiStyles.color}">{airData.aqi}</span>
@@ -83,7 +94,7 @@
 				<Progress value={Math.min((airData.aqi / 200) * 100, 100)} class="h-1.5" />
 			</div>
 		{:else}
-			<p class="text-sm text-[#86868B]">Data not available</p>
+			<p class="text-sm text-[#86868B]">{m.status_unknown()}</p>
 		{/if}
 	</Card.Header>
 
@@ -97,7 +108,7 @@
 					</div>
 					<div>
 						<p class="font-medium text-[#1D1D1F]">PM2.5</p>
-						<p class="text-xs text-[#86868B]">Fine Particulate Matter</p>
+						<p class="text-xs text-[#86868B]">{m.pm25_name()}</p>
 					</div>
 				</div>
 				<div class="text-right">
@@ -113,15 +124,15 @@
 						<Bug size={18} strokeWidth={1.5} />
 					</div>
 					<div>
-						<p class="font-medium text-[#1D1D1F]">Dengue Risk</p>
-						<p class="text-xs text-[#86868B]">Historical Data</p>
+						<p class="font-medium text-[#1D1D1F]">{m.dengue_risk()}</p>
+						<p class="text-xs text-[#86868B]">{m.historical_data()}</p>
 					</div>
 				</div>
 				<div class="text-right">
 					{#if airData.dengueRisk}
-						<Badge variant="destructive" class="px-2 py-0.5 h-6 text-[11px]">Risk</Badge>
+						<Badge variant="destructive" class="px-2 py-0.5 h-6 text-[11px]">{m.status_risk()}</Badge>
 					{:else}
-						<Badge variant="success" class="px-2 py-0.5 h-6 text-[11px]">Safe</Badge>
+						<Badge variant="success" class="px-2 py-0.5 h-6 text-[11px]">{m.status_safe()}</Badge>
 					{/if}
 				</div>
 			</div>
@@ -133,8 +144,8 @@
 						<Building size={18} strokeWidth={1.5} />
 					</div>
 					<div>
-						<p class="font-medium text-[#1D1D1F]">Zoning</p>
-						<p class="text-xs text-[#86868B]">Area Classification</p>
+						<p class="font-medium text-[#1D1D1F]">{m.zoning_area()}</p>
+						<p class="text-xs text-[#86868B]">{m.area_classification()}</p>
 					</div>
 				</div>
 				<div class="text-right">

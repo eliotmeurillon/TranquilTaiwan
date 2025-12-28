@@ -120,8 +120,8 @@
 					type: 'temple',
 					latitude: pt.lat,
 					longitude: pt.lng,
-					label: 'Local Temple',
-					details: 'Risk: High Noise (Festivals)'
+					label: m.poi_temple_label(),
+					details: m.poi_temple_desc()
 				});
 			}
 		}
@@ -134,8 +134,8 @@
 					type: 'accident',
 					latitude: pt.lat,
 					longitude: pt.lng,
-					label: 'Accident Blackspot',
-					details: 'High Collision Rate'
+					label: m.poi_accident_label(),
+					details: m.poi_accident_desc()
 				});
 			}
 		}
@@ -147,8 +147,8 @@
 				type: 'factory',
 				latitude: pt.lat,
 				longitude: pt.lng,
-				label: 'Industrial Zone',
-				details: 'Potential Air/Noise Issues'
+				label: m.poi_factory_label(),
+				details: m.poi_factory_desc()
 			});
 		}
 
@@ -160,8 +160,8 @@
 					type: 'youbike',
 					latitude: pt.lat,
 					longitude: pt.lng,
-					label: 'YouBike Station',
-					details: `${Math.floor(Math.random() * 20)} bikes available`
+					label: m.poi_youbike_label(),
+					details: `${Math.floor(Math.random() * 20)} ${m.poi_bikes_available()}`
 				});
 			}
 		}
@@ -174,8 +174,8 @@
 				type: 'transport',
 				latitude: pt.lat,
 				longitude: pt.lng,
-				label: 'Bus/MRT Station',
-				details: 'Public Transit Access'
+				label: m.poi_transport_label(),
+				details: m.poi_transport_desc()
 			});
 		}
 
@@ -187,8 +187,8 @@
 					type: 'trash',
 					latitude: pt.lat,
 					longitude: pt.lng,
-					label: 'Trash Collection',
-					details: 'Evening Collection Point'
+					label: m.poi_trash_label(),
+					details: m.poi_trash_desc()
 				});
 			}
 		}
@@ -344,7 +344,7 @@
 		<main class="flex-grow flex flex-col items-center justify-center px-4 w-full max-w-2xl mx-auto -mt-10">
 			<div class="text-center mb-10 space-y-4">
 				<h1 class="text-4xl md:text-5xl font-bold text-[#1D1D1F] leading-tight tracking-tight">
-					Find your <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#007AFF] to-[#5856D6]">future apartment</span>
+					{m.hero_title_prefix()} <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#007AFF] to-[#5856D6]">{m.hero_title_suffix()}</span>
 				</h1>
 				<p class="text-[19px] leading-relaxed text-[#86868B] font-light max-w-2xl mx-auto">
 					{m.landing_subtitle()}
@@ -505,8 +505,8 @@
 			
 			<!-- Native Ad (Partenaire) -->
 			<NativeAdCard 
-				title="Isolation Phonique Pro" 
-				description="Réduisez les bruits de la rue de 40dB avec nos nouvelles fenêtres double vitrage. Devis gratuit pour ce quartier."
+				title={m.mock_ad_1_title()}
+				description={m.mock_ad_1_desc()}
 				image="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3" 
 			/>
 
@@ -529,8 +529,8 @@
 						</div>
 						<div class="absolute top-6 right-6">
 							<InfoHint 
-								title="Comment lire les dB ?" 
-								description="40dB = Bibliothèque. 60dB = Conversation. 80dB = Trafic intense. Au-delà de 65dB, le sommeil peut être perturbé."
+								title={m.info_noise_title()}
+								description={m.info_noise_desc()}
 							/>
 						</div>
 					</Card.Header>
@@ -541,10 +541,10 @@
 							<div class="mb-6 space-y-3">
 								<div class="flex justify-between items-center">
 									<span class="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
-										Niveau Sonore
+										{m.report_noise_title()}
 									</span>
 									<span class="{noiseData.level >= 60 ? 'text-[#FF3B30]' : 'text-[#34C759]'} font-bold text-sm">
-										{noiseData.level >= 80 ? 'Very Noisy' : noiseData.level >= 60 ? 'Noisy' : 'Quiet'}
+										{noiseData.level >= 80 ? m.teaser_noise_status_noisy() : noiseData.level >= 60 ? m.teaser_noise_status_moderate() : m.teaser_noise_status_quiet()}
 									</span>
 								</div>
 								
@@ -559,7 +559,7 @@
 											<Speaker class="w-4 h-4" strokeWidth={1.5} />
 										</div>
 										<div class="flex-1">
-											<p class="text-[15px] font-medium text-[#1D1D1F]">Temple Nearby</p>
+											<p class="text-[15px] font-medium text-[#1D1D1F]">{m.poi_temple_label()}</p>
 											<p class="text-[13px] text-[#86868B]">
 												{m.report_noise_item_temple({ 
 													distance: noiseData.nearbyTemples, 
@@ -575,7 +575,7 @@
 											<Bus class="w-4 h-4" strokeWidth={1.5} />
 										</div>
 										<div class="flex-1">
-											<p class="text-[15px] font-medium text-[#1D1D1F]">Major Roads</p>
+											<p class="text-[15px] font-medium text-[#1D1D1F]">{m.report_noise_item_road({ distance: 0, risk: '' }).split(':')[0]}</p>
 											<p class="text-[13px] text-[#86868B]">
 												{m.report_noise_item_road({ 
 													distance: noiseData.majorRoads * 200, 
@@ -587,7 +587,7 @@
 								{/if}
 							</div>
 						{:else}
-							<p class="text-sm text-[#86868B]">Noise data not available</p>
+							<p class="text-sm text-[#86868B]">{m.status_unknown()}</p>
 						{/if}
 					</Card.Content>
 				</Card.Root>
@@ -625,7 +625,7 @@
 										<AlertCircle class="w-4 h-4" strokeWidth={1.5} />
 									</div>
 									<div class="flex-1">
-										<p class="text-[15px] font-medium text-[#1D1D1F]">Accident Hotspots</p>
+										<p class="text-[15px] font-medium text-[#1D1D1F]">{m.poi_accident_label()}</p>
 										<p class="text-[13px] text-[#86868B]">
 											{m.report_safety_accident({ time: `${safetyData.accidentHotspots} hotspot${safetyData.accidentHotspots > 1 ? 's' : ''} nearby` })}
 										</p>
@@ -633,7 +633,7 @@
 								</div>
 							{/if}
 						{:else}
-							<p class="text-sm text-[#86868B]">Safety data not available</p>
+							<p class="text-sm text-[#86868B]">{m.status_unknown()}</p>
 						{/if}
 					</Card.Content>
 				</Card.Root>
@@ -642,7 +642,7 @@
 				{#if scoreData.detailedData?.convenience}
 					{@const convenienceData = scoreData.detailedData.convenience}
 					{@const walkScore = Math.min(100, Math.round(convenienceData.publicTransportScore * 0.4 + (convenienceData.youbikeStations > 0 ? 30 : 0) + (convenienceData.trashCollectionPoints > 0 ? 20 : 0) + 10))}
-					{@const walkScoreLabel = walkScore >= 90 ? 'Walker Paradise' : walkScore >= 70 ? 'Very Walkable' : walkScore >= 50 ? 'Somewhat Walkable' : 'Car Dependent'}
+					{@const walkScoreLabel = walkScore >= 90 ? m.walk_paradise() : walkScore >= 70 ? m.walk_very() : walkScore >= 50 ? m.walk_somewhat() : m.walk_car()}
 					<Card.Root class="h-full mb-6 md:mb-0">
 						<Card.Header class="pb-4 relative">
 							<div class="flex items-center justify-between mb-4">
@@ -658,7 +658,7 @@
 							<div class="space-y-2">
 								<div class="flex items-center justify-between">
 									<div>
-										<p class="text-sm font-semibold text-[#1D1D1F]">Walk Score</p>
+										<p class="text-sm font-semibold text-[#1D1D1F]">{m.walk_score()}</p>
 										<p class="text-xs text-[#86868B]">{walkScoreLabel}</p>
 									</div>
 									<div class="text-right">
@@ -678,8 +678,8 @@
 										<TrainFront size={18} strokeWidth={1.5} />
 									</div>
 									<div>
-										<p class="font-medium text-[#1D1D1F]">Daan Park Station</p>
-										<p class="text-xs text-[#86868B]">Red Line • Exit 2</p>
+										<p class="font-medium text-[#1D1D1F]">{m.mock_transport_station()}</p>
+										<p class="text-xs text-[#86868B]">{m.mock_transport_desc()}</p>
 									</div>
 								</div>
 								<div class="text-right">
@@ -695,8 +695,8 @@
 										<Store size={18} strokeWidth={1.5} />
 									</div>
 									<div>
-										<p class="font-medium text-[#1D1D1F]">7-Eleven</p>
-										<p class="text-xs text-[#86868B]">24/7 Convenience Store</p>
+										<p class="font-medium text-[#1D1D1F]">{m.mock_store_name()}</p>
+										<p class="text-xs text-[#86868B]">{m.mock_store_desc()}</p>
 									</div>
 								</div>
 								<div class="text-right">
@@ -713,7 +713,7 @@
 											<Bike size={18} strokeWidth={1.5} />
 										</div>
 										<div>
-											<p class="font-medium text-[#1D1D1F]">YouBike Station</p>
+											<p class="font-medium text-[#1D1D1F]">{m.poi_youbike_label()}</p>
 											<p class="text-xs text-[#86868B]">Xinyi/Jianguo</p>
 										</div>
 									</div>
@@ -732,13 +732,13 @@
 											<Trash2 size={18} strokeWidth={1.5} />
 										</div>
 										<div>
-											<p class="font-medium text-[#1D1D1F]">Evening Pickup Spot</p>
-											<p class="text-xs text-[#86868B]">19:30 • In the street</p>
+											<p class="font-medium text-[#1D1D1F]">{m.poi_trash_desc()}</p>
+											<p class="text-xs text-[#86868B]">{m.mock_trash_desc()}</p>
 										</div>
 									</div>
 									<div class="text-right">
 										<Badge variant="secondary" class="bg-[#F5F5F7] text-[#1D1D1F]">0 min</Badge>
-										<p class="text-[10px] text-[#86868B] mt-1">On site</p>
+										<p class="text-[10px] text-[#86868B] mt-1">{m.mock_trash_onsite()}</p>
 									</div>
 								</div>
 							{/if}
@@ -750,8 +750,8 @@
 			<!-- Bottom Ad Placeholder -->
 			<div class="px-4 py-4 max-w-2xl mx-auto">
 				<NativeAdCard 
-					title="Déménagement Zen" 
-					description="Service de déménagement silencieux et rapide. Évitez le stress du changement."
+					title={m.mock_ad_2_title()}
+					description={m.mock_ad_2_desc()}
 					image="https://images.unsplash.com/photo-1600585152220-90363fe7e115?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3" 
 				/>
 			</div>
@@ -762,7 +762,7 @@
 			<div class="bg-[rgba(255,255,255,0.88)] backdrop-blur-[20px] shadow-[0_-4px_20px_rgba(0,0,0,0.1),0_0_1px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.05)] rounded-full p-2 pl-6 flex items-center justify-between pointer-events-auto max-w-lg mx-auto gap-4">
 				<div class="flex items-center gap-3">
 					<div class="text-[15px] font-medium text-[#1D1D1F]">
-						Like this report?
+						{m.report_like_prompt()}
 					</div>
 				</div>
 				<!-- Secondary Action: Share -->

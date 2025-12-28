@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Volume2, Wind, Shield } from 'lucide-svelte';
+	import * as m from '$lib/paraglide/messages';
 
 	interface Props {
 		noiseVisible: boolean;
@@ -28,10 +29,10 @@
 		{noiseVisible 
 			? 'bg-[#FF9500] text-white border-transparent' 
 			: 'bg-[rgba(255,255,255,0.8)] text-[#1D1D1F] border-[rgba(0,0,0,0.08)] hover:bg-[rgba(255,255,255,0.9)]'}"
-		aria-label="Toggle noise layer"
+		aria-label={m.map_heatmap_toggle_noise()}
 	>
 		<Volume2 class="w-4 h-4" strokeWidth={noiseVisible ? 2 : 1.5} />
-		<span class="text-xs font-semibold">Noise</span>
+		<span class="text-xs font-semibold">{m.toggle_noise()}</span>
 	</button>
 
 	<!-- Air Quality Toggle -->
@@ -41,10 +42,10 @@
 		{airQualityVisible 
 			? 'bg-[#34C759] text-white border-transparent' 
 			: 'bg-[rgba(255,255,255,0.8)] text-[#1D1D1F] border-[rgba(0,0,0,0.08)] hover:bg-[rgba(255,255,255,0.9)]'}"
-		aria-label="Toggle air quality layer"
+		aria-label={m.map_heatmap_toggle_air()}
 	>
 		<Wind class="w-4 h-4" strokeWidth={airQualityVisible ? 2 : 1.5} />
-		<span class="text-xs font-semibold">Air</span>
+		<span class="text-xs font-semibold">{m.toggle_air()}</span>
 	</button>
 
 	<!-- Safety Toggle -->
@@ -57,6 +58,6 @@
 		aria-label="Toggle safety layer"
 	>
 		<Shield class="w-4 h-4" strokeWidth={safetyPointsVisible ? 2 : 1.5} />
-		<span class="text-xs font-semibold">Safety</span>
+		<span class="text-xs font-semibold">{m.toggle_safety()}</span>
 	</button>
 </div>
