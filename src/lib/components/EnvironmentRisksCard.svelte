@@ -119,9 +119,9 @@
 				</div>
 				<div class="text-right">
 					{#if airData.dengueRisk}
-						<Badge variant="destructive" class="px-2 py-0.5 h-6">Risk</Badge>
+						<Badge variant="destructive" class="px-2 py-0.5 h-6 text-[11px]">Risk</Badge>
 					{:else}
-						<Badge variant="success" class="px-2 py-0.5 h-6">Safe</Badge>
+						<Badge variant="success" class="px-2 py-0.5 h-6 text-[11px]">Safe</Badge>
 					{/if}
 				</div>
 			</div>

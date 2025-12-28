@@ -225,9 +225,9 @@
 
 	// Derived utility functions
 	const getScoreColor = (score: number): string => {
-		if (score >= 80) return 'text-emerald-700';
-		if (score >= 60) return 'text-yellow-600';
-		return 'text-orange-600';
+		if (score >= 80) return 'text-[#34C759]'; // System Green
+		if (score >= 60) return 'text-[#FFCC00]'; // System Yellow
+		return 'text-[#FF3B30]'; // System Red
 	};
 	
 	const getScoreLabel = (score: number): string => {
@@ -326,15 +326,15 @@
 
 {#if !scoreData}
 	<!-- Landing Page Layout -->
-	<div class="min-h-screen flex flex-col bg-slate-50 relative font-sans">
+	<div class="min-h-screen flex flex-col bg-[#FAFAFA] relative font-sans text-[#1D1D1F]">
 		<!-- Header -->
 		<header class="flex justify-between items-center px-6 py-4 absolute top-0 w-full z-10">
 			<div class="flex items-center gap-2">
-				<div class="w-8 h-8 text-emerald-600">
+				<div class="w-8 h-8 text-[#007AFF]">
 					<!-- Leaf Icon -->
 					<Leaf class="w-full h-full" strokeWidth={1.5} />
 				</div>
-				<span class="font-bold text-lg text-slate-800 tracking-tight">TranquilTaiwan</span>
+				<span class="font-bold text-lg text-[#1D1D1F] tracking-tight">TranquilTaiwan</span>
 			</div>
 			<!-- Login removed, Language Switcher added -->
 			<LanguageSwitcher />
@@ -343,10 +343,10 @@
 		<!-- Hero Section -->
 		<main class="flex-grow flex flex-col items-center justify-center px-4 w-full max-w-2xl mx-auto -mt-10">
 			<div class="text-center mb-10 space-y-4">
-				<h1 class="text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
-					Find your <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-800">future apartment</span>
+				<h1 class="text-4xl md:text-5xl font-bold text-[#1D1D1F] leading-tight tracking-tight">
+					Find your <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#007AFF] to-[#5856D6]">future apartment</span>
 				</h1>
-				<p class="text-lg text-slate-500 font-light max-w-2xl mx-auto leading-relaxed">
+				<p class="text-[19px] leading-relaxed text-[#86868B] font-light max-w-2xl mx-auto">
 					{m.landing_subtitle()}
 				</p>
 			</div>
@@ -360,42 +360,42 @@
 					type="text"
 					bind:value={address}
 					placeholder={m.search_placeholder()}
-					class="w-full py-5 pl-6 pr-14 rounded-2xl text-lg bg-white shadow-lg border-0 ring-1 ring-slate-100 focus:ring-4 focus:ring-emerald-100 transition-all placeholder:text-slate-400 text-slate-800"
+					class="w-full h-[52px] md:h-[60px] pl-6 pr-14 rounded-[18px] text-[17px] bg-[rgba(255,255,255,0.8)] backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.08)] focus:border-[#007AFF] focus:ring-4 focus:ring-[#007AFF]/10 transition-all placeholder:text-[#86868B] text-[#1D1D1F]"
 					onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && searchAddress()}
 				/>
 				<button
 					onclick={() => searchAddress()}
 					disabled={loading}
-					class="absolute right-3 top-3 bottom-3 aspect-square text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
+					class="absolute right-3 top-2 bottom-2 md:top-2.5 md:bottom-2.5 aspect-square text-white bg-[#007AFF] hover:bg-[#0069D9] rounded-full flex items-center justify-center transition-all disabled:opacity-50 shadow-md active:scale-95"
 					aria-label={m.search_button()}
 				>
 					{#if loading}
-						<svg class="animate-spin h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+						<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 						</svg>
 					{:else}
-						<Search class="h-5 w-5 text-emerald-600" strokeWidth={2.5} />
+						<Search class="h-5 w-5" strokeWidth={2.5} />
 					{/if}
 				</button>
 			</div>
 
 			<!-- Social Proof / Quick Filters -->
 			<div class="mt-8 text-center w-full">
-				<p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+				<p class="text-[13px] font-semibold text-[#86868B] uppercase tracking-wide mb-4">
 					{m.landing_social_proof()}
 				</p>
-				<div class="flex flex-wrap justify-center gap-3 mt-6">
-					<button onclick={() => searchAddress(m.landing_example_1())} class="bg-white border border-slate-200 text-slate-600 shadow-sm hover:border-emerald-500 hover:text-emerald-700 hover:shadow-md transition-all duration-300 rounded-full px-6 py-2 text-sm font-medium flex items-center">
-						<MapPin class="w-3 h-3 mr-2 inline" strokeWidth={1.5} />
+				<div class="flex flex-wrap justify-center gap-3 mt-4">
+					<button onclick={() => searchAddress(m.landing_example_1())} class="bg-white/80 border border-[rgba(0,0,0,0.08)] text-[#6E6E73] shadow-sm hover:bg-white hover:border-[#007AFF]/50 hover:text-[#007AFF] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 rounded-full px-5 py-2 text-[15px] font-medium flex items-center backdrop-blur-md">
+						<MapPin class="w-3.5 h-3.5 mr-2 inline opacity-70" strokeWidth={2} />
 						{m.landing_example_1()}
 					</button>
-					<button onclick={() => searchAddress(m.landing_example_2())} class="bg-white border border-slate-200 text-slate-600 shadow-sm hover:border-emerald-500 hover:text-emerald-700 hover:shadow-md transition-all duration-300 rounded-full px-6 py-2 text-sm font-medium flex items-center">
-						<MapPin class="w-3 h-3 mr-2 inline" strokeWidth={1.5} />
+					<button onclick={() => searchAddress(m.landing_example_2())} class="bg-white/80 border border-[rgba(0,0,0,0.08)] text-[#6E6E73] shadow-sm hover:bg-white hover:border-[#007AFF]/50 hover:text-[#007AFF] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 rounded-full px-5 py-2 text-[15px] font-medium flex items-center backdrop-blur-md">
+						<MapPin class="w-3.5 h-3.5 mr-2 inline opacity-70" strokeWidth={2} />
 						{m.landing_example_2()}
 					</button>
-					<button onclick={() => searchAddress(m.landing_example_3())} class="bg-white border border-slate-200 text-slate-600 shadow-sm hover:border-emerald-500 hover:text-emerald-700 hover:shadow-md transition-all duration-300 rounded-full px-6 py-2 text-sm font-medium flex items-center">
-						<MapPin class="w-3 h-3 mr-2 inline" strokeWidth={1.5} />
+					<button onclick={() => searchAddress(m.landing_example_3())} class="bg-white/80 border border-[rgba(0,0,0,0.08)] text-[#6E6E73] shadow-sm hover:bg-white hover:border-[#007AFF]/50 hover:text-[#007AFF] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 rounded-full px-5 py-2 text-[15px] font-medium flex items-center backdrop-blur-md">
+						<MapPin class="w-3.5 h-3.5 mr-2 inline opacity-70" strokeWidth={2} />
 						{m.landing_example_3()}
 					</button>
 				</div>
@@ -403,7 +403,7 @@
 			
 			{#if error}
 				<div class="mt-6 w-full animate-fade-in">
-					<div class="bg-orange-50 border border-orange-100 text-orange-700 px-4 py-3 rounded-xl flex items-start gap-3">
+					<div class="bg-[#FF3B30]/10 border border-[#FF3B30]/20 text-[#FF3B30] px-4 py-3 rounded-[14px] flex items-start gap-3 backdrop-blur-md">
 						<AlertCircle class="stroke-current shrink-0 h-5 w-5 mt-0.5" strokeWidth={1.5} />
 						<span>{error}</span>
 					</div>
@@ -412,14 +412,14 @@
 		</main>
 
 		<!-- Footer -->
-		<footer class="py-6 text-center text-sm text-slate-400 space-x-6">
-			<a href="/about" class="hover:text-slate-600 transition-colors">{m.landing_footer_about()}</a>
-			<a href="/sources" class="hover:text-slate-600 transition-colors">{m.landing_footer_sources()}</a>
+		<footer class="py-8 text-center text-[13px] text-[#86868B] space-x-6">
+			<a href="/about" class="hover:text-[#1D1D1F] transition-colors">{m.landing_footer_about()}</a>
+			<a href="/sources" class="hover:text-[#1D1D1F] transition-colors">{m.landing_footer_sources()}</a>
 		</footer>
 	</div>
 {:else}
 	<!-- Detailed Report View (Immersive Design) -->
-	<div class="min-h-screen bg-slate-50 relative pb-32 font-sans">
+	<div class="min-h-screen bg-[#FAFAFA] relative pb-32 font-sans text-[#1D1D1F]">
 		
 		<!-- 1. Map Background (Hero) -->
 		<div class="absolute top-0 left-0 w-full h-[60vh] md:h-[65vh] z-0">
@@ -437,7 +437,7 @@
 				bind:safetyPointsVisible
 			/>
 			<!-- Gradient Overlay -->
-			<div class="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none"></div>
+			<div class="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA]/90 to-transparent z-10 pointer-events-none"></div>
 			
 			<!-- MapLayerToggle - Moved inside map container but with high z-index and absolute positioning -->
 			<MapLayerToggle
@@ -451,25 +451,25 @@
 
 			<!-- Floating Score Card (Absolute over map) -->
 			<div class="absolute -bottom-20 left-4 right-4 z-20 max-w-4xl mx-auto">
-				<Card.Root class="backdrop-blur-xl bg-white/90 border border-white/50 shadow-xl rounded-2xl overflow-hidden">
-					<Card.Header class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
+				<Card.Root class="rounded-[24px] border border-white/40 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] backdrop-blur-[40px] bg-[rgba(255,255,255,0.85)]">
+					<Card.Header class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 px-6">
 						<div class="space-y-2">
-							<Card.Title class="text-2xl md:text-3xl font-bold text-slate-900">{scoreData.address}</Card.Title>
-							<div class="flex items-center gap-2 text-emerald-700 font-medium">
-								<MapPin class="w-4 h-4" strokeWidth={1.5} />
+							<Card.Title class="text-[28px] leading-[1.1] md:text-[34px] font-bold text-[#1D1D1F] tracking-tight">{scoreData.address}</Card.Title>
+							<div class="flex items-center gap-2 text-[#007AFF] font-medium text-[17px]">
+								<MapPin class="w-4 h-4" strokeWidth={2} />
 								<span>{m.report_env_title()} - {getScoreLabel(scoreData.scores.overall)}</span>
 							</div>
 						</div>
 						
-						<div class="flex items-center gap-4 bg-slate-50/50 p-2 rounded-2xl border border-slate-100/50">
+						<div class="flex items-center gap-4 bg-[rgba(255,255,255,0.5)] p-2 rounded-[20px] border border-[rgba(0,0,0,0.04)] backdrop-blur-md">
 							<div class="flex flex-col items-end">
-								<span class="text-xs text-slate-500 uppercase font-semibold tracking-wider">{m.livability_score()}</span>
-								<Badge variant={scoreData.scores.overall >= 80 ? 'default' : scoreData.scores.overall >= 60 ? 'secondary' : 'destructive'} class="text-xs">
+								<span class="text-[11px] text-[#86868B] uppercase font-bold tracking-widest mb-1">{m.livability_score()}</span>
+								<Badge variant={scoreData.scores.overall >= 80 ? 'default' : scoreData.scores.overall >= 60 ? 'warning' : 'destructive'} class="text-[13px] h-6 px-2.5">
 									{getScoreLabel(scoreData.scores.overall)}
 								</Badge>
 							</div>
-							<div class="relative flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-sm border-4 {scoreData.scores.overall >= 80 ? 'border-emerald-100' : scoreData.scores.overall >= 60 ? 'border-yellow-100' : 'border-orange-100'}">
-								<span class="text-2xl font-bold {getScoreColor(scoreData.scores.overall)}">
+							<div class="relative flex items-center justify-center w-[60px] h-[60px] rounded-full bg-white shadow-sm border-[4px] {scoreData.scores.overall >= 80 ? 'border-[#34C759]/20' : scoreData.scores.overall >= 60 ? 'border-[#FFCC00]/20' : 'border-[#FF3B30]/20'}">
+								<span class="text-[22px] font-bold {getScoreColor(scoreData.scores.overall)}">
 									{Math.round(scoreData.scores.overall)}
 								</span>
 							</div>
@@ -485,11 +485,11 @@
 				<Button 
 					variant="outline" 
 					size="icon" 
-					class="bg-white/70 backdrop-blur-md shadow-sm hover:bg-white rounded-full border-0"
+					class="bg-[rgba(255,255,255,0.72)] backdrop-blur-xl shadow-sm hover:bg-[rgba(255,255,255,0.9)] rounded-full border border-[rgba(0,0,0,0.05)] w-[40px] h-[40px]"
 					onclick={() => goto('/')}
 					aria-label={m.teaser_back()}
 				>
-					<ArrowLeft class="w-5 h-5 text-slate-700" strokeWidth={1.5} />
+					<ArrowLeft class="w-5 h-5 text-[#1D1D1F]" strokeWidth={2} />
 				</Button>
 			</div>
 			<div class="pointer-events-auto">
@@ -514,16 +514,16 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 				
 				<!-- Noise Section -->
-				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
+				<Card.Root class="h-full mb-6 md:mb-0">
 					<Card.Header class="pb-4 relative">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-3">
-								<div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
+								<div class="w-10 h-10 rounded-full bg-[rgba(255,149,0,0.1)] text-[#FF9500] flex items-center justify-center">
 									<Volume2 class="w-5 h-5" strokeWidth={1.5} />
 								</div>
 								<Card.Title>{m.report_noise_title()}</Card.Title>
 							</div>
-							<Badge variant="outline" class="font-bold text-sm bg-slate-50">
+							<Badge variant="outline" class="font-semibold text-sm bg-white/50 border-[rgba(0,0,0,0.08)]">
 								{Math.round(scoreData.detailedData?.noise?.level || 0)} dB
 							</Badge>
 						</div>
@@ -540,10 +540,10 @@
 							{@const noiseData = scoreData.detailedData.noise}
 							<div class="mb-6 space-y-3">
 								<div class="flex justify-between items-center">
-									<span class="text-xs font-medium text-slate-400 uppercase tracking-wider">
+									<span class="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide">
 										Niveau Sonore
 									</span>
-									<span class="{noiseData.level >= 60 ? 'text-orange-600' : 'text-emerald-600'} font-bold text-sm">
+									<span class="{noiseData.level >= 60 ? 'text-[#FF3B30]' : 'text-[#34C759]'} font-bold text-sm">
 										{noiseData.level >= 80 ? 'Very Noisy' : noiseData.level >= 60 ? 'Noisy' : 'Quiet'}
 									</span>
 								</div>
@@ -554,13 +554,13 @@
 
 							<div class="space-y-3">
 								{#if noiseData.nearbyTemples > 0}
-									<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-										<div class="p-2 rounded-full bg-white text-orange-500 shadow-sm">
+									<div class="flex items-center gap-3 p-3 rounded-[14px] border border-[rgba(0,0,0,0.06)] bg-[#F5F5F7]/50">
+										<div class="p-2 rounded-full bg-white text-[#FF9500] shadow-sm">
 											<Speaker class="w-4 h-4" strokeWidth={1.5} />
 										</div>
 										<div class="flex-1">
-											<p class="text-sm font-medium text-slate-900">Temple Nearby</p>
-											<p class="text-xs text-slate-500">
+											<p class="text-[15px] font-medium text-[#1D1D1F]">Temple Nearby</p>
+											<p class="text-[13px] text-[#86868B]">
 												{m.report_noise_item_temple({ 
 													distance: noiseData.nearbyTemples, 
 													risk: noiseData.nearbyTemples > 1 ? m.risk_high() : m.risk_low() 
@@ -570,13 +570,13 @@
 									</div>
 								{/if}
 								{#if noiseData.majorRoads > 0}
-									<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-										<div class="p-2 rounded-full bg-white text-orange-500 shadow-sm">
+									<div class="flex items-center gap-3 p-3 rounded-[14px] border border-[rgba(0,0,0,0.06)] bg-[#F5F5F7]/50">
+										<div class="p-2 rounded-full bg-white text-[#FF9500] shadow-sm">
 											<Bus class="w-4 h-4" strokeWidth={1.5} />
 										</div>
 										<div class="flex-1">
-											<p class="text-sm font-medium text-slate-900">Major Roads</p>
-											<p class="text-xs text-slate-500">
+											<p class="text-[15px] font-medium text-[#1D1D1F]">Major Roads</p>
+											<p class="text-[13px] text-[#86868B]">
 												{m.report_noise_item_road({ 
 													distance: noiseData.majorRoads * 200, 
 													risk: noiseData.majorRoads > 1 ? m.risk_high() : m.risk_low() 
@@ -587,7 +587,7 @@
 								{/if}
 							</div>
 						{:else}
-							<p class="text-sm text-slate-500">Noise data not available</p>
+							<p class="text-sm text-[#86868B]">Noise data not available</p>
 						{/if}
 					</Card.Content>
 				</Card.Root>
@@ -596,10 +596,10 @@
 				<EnvironmentRisksCard detailedData={scoreData.detailedData} />
 
 				<!-- Safety Section -->
-				<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
+				<Card.Root class="h-full mb-6 md:mb-0">
 					<Card.Header class="pb-4 relative">
 						<div class="flex items-center gap-3">
-							<div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
+							<div class="w-10 h-10 rounded-full bg-[rgba(255,149,0,0.1)] text-[#FF9500] flex items-center justify-center">
 								<Shield class="w-5 h-5" strokeWidth={1.5} />
 							</div>
 							<Card.Title>{m.report_safety_title()}</Card.Title>
@@ -613,27 +613,27 @@
 								<!-- Chart.js Radar Chart -->
 								<SafetyRadarChart safetyData={safetyData} />
 								
-								<div class="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
-									<AlertCircle class="w-4 h-4 text-slate-400" strokeWidth={1.5} />
+								<div class="flex items-center gap-2 text-xs text-[#86868B] bg-[#F5F5F7] p-3 rounded-[14px] border border-[rgba(0,0,0,0.06)]">
+									<AlertCircle class="w-4 h-4 text-[#86868B]" strokeWidth={1.5} />
 									<span>Crime rate: {(safetyData.crimeRate * 100).toFixed(1)}% | Accident hotspots: {safetyData.accidentHotspots}</span>
 								</div>
 							</div>
 
 							{#if safetyData.accidentHotspots > 0}
-								<div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-									<div class="p-2 rounded-full bg-white text-orange-600 shadow-sm">
+								<div class="flex items-center gap-3 p-3 rounded-[14px] border border-[rgba(0,0,0,0.06)] bg-[#F5F5F7]/50">
+									<div class="p-2 rounded-full bg-white text-[#FF3B30] shadow-sm">
 										<AlertCircle class="w-4 h-4" strokeWidth={1.5} />
 									</div>
 									<div class="flex-1">
-										<p class="text-sm font-medium text-slate-900">Accident Hotspots</p>
-										<p class="text-xs text-slate-500">
+										<p class="text-[15px] font-medium text-[#1D1D1F]">Accident Hotspots</p>
+										<p class="text-[13px] text-[#86868B]">
 											{m.report_safety_accident({ time: `${safetyData.accidentHotspots} hotspot${safetyData.accidentHotspots > 1 ? 's' : ''} nearby` })}
 										</p>
 									</div>
 								</div>
 							{/if}
 						{:else}
-							<p class="text-sm text-slate-500">Safety data not available</p>
+							<p class="text-sm text-[#86868B]">Safety data not available</p>
 						{/if}
 					</Card.Content>
 				</Card.Root>
@@ -643,11 +643,11 @@
 					{@const convenienceData = scoreData.detailedData.convenience}
 					{@const walkScore = Math.min(100, Math.round(convenienceData.publicTransportScore * 0.4 + (convenienceData.youbikeStations > 0 ? 30 : 0) + (convenienceData.trashCollectionPoints > 0 ? 20 : 0) + 10))}
 					{@const walkScoreLabel = walkScore >= 90 ? 'Walker Paradise' : walkScore >= 70 ? 'Very Walkable' : walkScore >= 50 ? 'Somewhat Walkable' : 'Car Dependent'}
-					<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
+					<Card.Root class="h-full mb-6 md:mb-0">
 						<Card.Header class="pb-4 relative">
 							<div class="flex items-center justify-between mb-4">
 								<div class="flex items-center gap-3">
-									<div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+									<div class="w-10 h-10 rounded-full bg-[rgba(175,82,222,0.1)] text-[#AF52DE] flex items-center justify-center">
 										<Bike class="w-5 h-5" strokeWidth={1.5} />
 									</div>
 									<Card.Title>{m.convenience()}</Card.Title>
@@ -658,12 +658,12 @@
 							<div class="space-y-2">
 								<div class="flex items-center justify-between">
 									<div>
-										<p class="text-sm font-semibold text-slate-700">Walk Score</p>
-										<p class="text-xs text-slate-500">{walkScoreLabel}</p>
+										<p class="text-sm font-semibold text-[#1D1D1F]">Walk Score</p>
+										<p class="text-xs text-[#86868B]">{walkScoreLabel}</p>
 									</div>
 									<div class="text-right">
-										<span class="text-2xl font-bold text-emerald-600">{walkScore}</span>
-										<span class="text-sm text-slate-400">/100</span>
+										<span class="text-2xl font-bold text-[#34C759]">{walkScore}</span>
+										<span class="text-sm text-[#86868B]">/100</span>
 									</div>
 								</div>
 								<Progress value={walkScore} class="h-1.5" />
@@ -672,73 +672,73 @@
 						
 						<Card.Content class="space-y-4">
 							<!-- Transport: Daan Park Station -->
-							<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+							<div class="flex items-center justify-between py-3 border-b border-[rgba(0,0,0,0.06)] last:border-0">
 								<div class="flex items-center gap-3">
-									<div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+									<div class="p-2 rounded-lg bg-[#F5F5F7] text-[#5856D6]">
 										<TrainFront size={18} strokeWidth={1.5} />
 									</div>
 									<div>
-										<p class="font-medium text-slate-900">Daan Park Station</p>
-										<p class="text-xs text-slate-500">Red Line • Exit 2</p>
+										<p class="font-medium text-[#1D1D1F]">Daan Park Station</p>
+										<p class="text-xs text-[#86868B]">Red Line • Exit 2</p>
 									</div>
 								</div>
 								<div class="text-right">
-									<Badge variant="secondary" class="bg-slate-100 text-slate-700">4 min</Badge>
-									<p class="text-[10px] text-slate-400 mt-1">350m</p>
+									<Badge variant="secondary" class="bg-[#F5F5F7] text-[#1D1D1F]">4 min</Badge>
+									<p class="text-[10px] text-[#86868B] mt-1">350m</p>
 								</div>
 							</div>
 
 							<!-- Daily Life: 7-Eleven -->
-							<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+							<div class="flex items-center justify-between py-3 border-b border-[rgba(0,0,0,0.06)] last:border-0">
 								<div class="flex items-center gap-3">
-									<div class="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+									<div class="p-2 rounded-lg bg-[#F5F5F7] text-[#34C759]">
 										<Store size={18} strokeWidth={1.5} />
 									</div>
 									<div>
-										<p class="font-medium text-slate-900">7-Eleven</p>
-										<p class="text-xs text-slate-500">24/7 Convenience Store</p>
+										<p class="font-medium text-[#1D1D1F]">7-Eleven</p>
+										<p class="text-xs text-[#86868B]">24/7 Convenience Store</p>
 									</div>
 								</div>
 								<div class="text-right">
-									<Badge variant="secondary" class="bg-slate-100 text-slate-700">1 min</Badge>
-									<p class="text-[10px] text-slate-400 mt-1">80m</p>
+									<Badge variant="secondary" class="bg-[#F5F5F7] text-[#1D1D1F]">1 min</Badge>
+									<p class="text-[10px] text-[#86868B] mt-1">80m</p>
 								</div>
 							</div>
 
 							<!-- Bike: YouBike Station -->
 							{#if convenienceData.youbikeStations > 0}
-								<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+								<div class="flex items-center justify-between py-3 border-b border-[rgba(0,0,0,0.06)] last:border-0">
 									<div class="flex items-center gap-3">
-										<div class="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+										<div class="p-2 rounded-lg bg-[#F5F5F7] text-[#34C759]">
 											<Bike size={18} strokeWidth={1.5} />
 										</div>
 										<div>
-											<p class="font-medium text-slate-900">YouBike Station</p>
-											<p class="text-xs text-slate-500">Xinyi/Jianguo</p>
+											<p class="font-medium text-[#1D1D1F]">YouBike Station</p>
+											<p class="text-xs text-[#86868B]">Xinyi/Jianguo</p>
 										</div>
 									</div>
 									<div class="text-right">
-										<Badge variant="secondary" class="bg-slate-100 text-slate-700">2 min</Badge>
-										<p class="text-[10px] text-slate-400 mt-1">{convenienceData.nearestYoubikeDistance || 150}m</p>
+										<Badge variant="secondary" class="bg-[#F5F5F7] text-[#1D1D1F]">2 min</Badge>
+										<p class="text-[10px] text-[#86868B] mt-1">{convenienceData.nearestYoubikeDistance || 150}m</p>
 									</div>
 								</div>
 							{/if}
 
 							<!-- Trash: Evening Pickup Spot -->
 							{#if convenienceData.trashCollectionPoints > 0}
-								<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+								<div class="flex items-center justify-between py-3 border-b border-[rgba(0,0,0,0.06)] last:border-0">
 									<div class="flex items-center gap-3">
-										<div class="p-2 rounded-lg bg-amber-50 text-amber-600">
+										<div class="p-2 rounded-lg bg-[#F5F5F7] text-[#FF9500]">
 											<Trash2 size={18} strokeWidth={1.5} />
 										</div>
 										<div>
-											<p class="font-medium text-slate-900">Evening Pickup Spot</p>
-											<p class="text-xs text-slate-500">19:30 • In the street</p>
+											<p class="font-medium text-[#1D1D1F]">Evening Pickup Spot</p>
+											<p class="text-xs text-[#86868B]">19:30 • In the street</p>
 										</div>
 									</div>
 									<div class="text-right">
-										<Badge variant="secondary" class="bg-slate-100 text-slate-700">0 min</Badge>
-										<p class="text-[10px] text-slate-400 mt-1">On site</p>
+										<Badge variant="secondary" class="bg-[#F5F5F7] text-[#1D1D1F]">0 min</Badge>
+										<p class="text-[10px] text-[#86868B] mt-1">On site</p>
 									</div>
 								</div>
 							{/if}
@@ -759,9 +759,9 @@
 		
 		<!-- Floating Action Bar -->
 		<div class="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none">
-			<div class="bg-white/80 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border border-slate-200/50 rounded-2xl p-3 flex items-center justify-between pointer-events-auto max-w-2xl mx-auto gap-4">
-				<div class="flex items-center gap-3 pl-2">
-					<div class="text-sm font-medium text-slate-900">
+			<div class="bg-[rgba(255,255,255,0.88)] backdrop-blur-[20px] shadow-[0_-4px_20px_rgba(0,0,0,0.1),0_0_1px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.05)] rounded-full p-2 pl-6 flex items-center justify-between pointer-events-auto max-w-lg mx-auto gap-4">
+				<div class="flex items-center gap-3">
+					<div class="text-[15px] font-medium text-[#1D1D1F]">
 						Like this report?
 					</div>
 				</div>
@@ -770,10 +770,10 @@
 					variant="ghost" 
 					size="icon"
 					onclick={shareResult}
-					class="text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors" 
+					class="text-[#007AFF] hover:bg-[#007AFF]/10 transition-colors h-10 w-10 rounded-full" 
 					aria-label={m.report_share_button()}
 				>
-					<Share2 class="w-5 h-5" strokeWidth={1.5} />
+					<Share2 class="w-5 h-5" strokeWidth={2} />
 				</Button>
 			</div>
 		</div>
@@ -783,7 +783,7 @@
 <style>
 	:global(.leaflet-container) {
 		font-family: inherit;
-		background: #F8FAFC;
+		background: #FAFAFA;
 	}
 	
 	/* Animation utilities */

@@ -7,8 +7,8 @@
 
 <BitsSeparator.Root
 	class={cn(
-		"shrink-0 bg-border",
-		orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
+		"shrink-0 bg-[rgba(0,0,0,0.08)]",
+		orientation === "horizontal" ? "h-[0.5px] w-full" : "h-full w-[0.5px]",
 		className
 	)}
 	{decorative}
