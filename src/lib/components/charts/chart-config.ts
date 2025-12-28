@@ -39,11 +39,10 @@ ChartJS.register(
 // Configure default font and text color to match UI
 ChartJS.defaults.font = {
 	...ChartJS.defaults.font,
-	family: 'Inter, system-ui, -apple-system, sans-serif'
+	family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif'
 };
-ChartJS.defaults.color = '#64748b'; // Slate-500
+ChartJS.defaults.color = '#86868B'; // Tertiary Text
 
 // Export configured Chart instance
 export { ChartJS };
 export default ChartJS;
-

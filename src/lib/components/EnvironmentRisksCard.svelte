@@ -41,20 +41,20 @@
 	);
 
 	const aqiStyles = $derived(
-		!airData ? { color: 'text-slate-600', label: 'Unknown' } :
+		!airData ? { color: 'text-[#86868B]', label: 'Unknown' } :
 		airData.aqi <= 50 
-			? { color: 'text-emerald-600', label: 'Good' }
+			? { color: 'text-[#34C759]', label: 'Good' }
 			: airData.aqi <= 100 
-				? { color: 'text-yellow-600', label: 'Moderate' }
-				: { color: 'text-orange-600', label: 'Unhealthy' }
+				? { color: 'text-[#FF9500]', label: 'Moderate' }
+				: { color: 'text-[#FF3B30]', label: 'Unhealthy' }
 	);
 </script>
 
-<Card.Root class="h-full bg-white border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 mb-6 md:mb-0">
+<Card.Root class="h-full mb-6 md:mb-0">
 	<Card.Header class="pb-4 relative">
 		<div class="flex items-center justify-between mb-4">
 			<div class="flex items-center gap-3">
-				<div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+				<div class="w-10 h-10 rounded-full bg-[rgba(0,122,255,0.1)] text-[#007AFF] flex items-center justify-center">
 					<Wind class="w-5 h-5" strokeWidth={1.5} />
 				</div>
 				<Card.Title>{m.report_env_title()}</Card.Title>
@@ -72,76 +72,73 @@
 			<div class="space-y-2">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm font-semibold text-slate-700">Air Quality Index</p>
-						<p class="text-xs text-slate-500">{aqiStyles.label}</p>
+						<p class="text-sm font-semibold text-[#1D1D1F]">Air Quality Index</p>
+						<p class="text-xs text-[#86868B]">{aqiStyles.label}</p>
 					</div>
 					<div class="text-right">
 						<span class="text-2xl font-bold {aqiStyles.color}">{airData.aqi}</span>
-						<span class="text-sm text-slate-400">/500</span>
+						<span class="text-sm text-[#86868B]">/500</span>
 					</div>
 				</div>
-				<!-- Normalize AQI to 0-100 for progress bar (assuming max relevant AQI is around 200-300 usually, but scale is 500) -->
-				<!-- Actually standard AQI: 0-50 Good, 51-100 Moderate, 101-150 Unhealthy for Sensitive, >150 Unhealthy -->
-				<!-- Let's map it roughly: 0->0, 200->100? Or just use linear up to a cap -->
 				<Progress value={Math.min((airData.aqi / 200) * 100, 100)} class="h-1.5" />
 			</div>
 		{:else}
-			<p class="text-sm text-slate-500">Data not available</p>
+			<p class="text-sm text-[#86868B]">Data not available</p>
 		{/if}
 	</Card.Header>
 
 	<Card.Content class="space-y-4">
 		{#if airData}
 			<!-- PM2.5 -->
-			<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+			<div class="flex items-center justify-between py-3 border-b border-[rgba(0,0,0,0.06)] last:border-0">
 				<div class="flex items-center gap-3">
-					<div class="p-2 rounded-lg bg-slate-50 text-slate-600">
+					<div class="p-2 rounded-lg bg-[#F5F5F7] text-[#636366]">
 						<Wind size={18} strokeWidth={1.5} />
 					</div>
 					<div>
-						<p class="font-medium text-slate-900">PM2.5</p>
-						<p class="text-xs text-slate-500">Fine Particulate Matter</p>
+						<p class="font-medium text-[#1D1D1F]">PM2.5</p>
+						<p class="text-xs text-[#86868B]">Fine Particulate Matter</p>
 					</div>
 				</div>
 				<div class="text-right">
-					<span class="font-semibold text-slate-700">{airData.pm25}</span>
-					<span class="text-xs text-slate-400 ml-1">µg/m³</span>
+					<span class="font-semibold text-[#1D1D1F]">{airData.pm25}</span>
+					<span class="text-xs text-[#86868B] ml-1">µg/m³</span>
 				</div>
 			</div>
 
 			<!-- Dengue -->
-			<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+			<div class="flex items-center justify-between py-3 border-b border-[rgba(0,0,0,0.06)] last:border-0">
 				<div class="flex items-center gap-3">
-					<div class="p-2 rounded-lg bg-slate-50 text-slate-600">
+					<div class="p-2 rounded-lg bg-[#F5F5F7] text-[#636366]">
 						<Bug size={18} strokeWidth={1.5} />
 					</div>
 					<div>
-						<p class="font-medium text-slate-900">Dengue Risk</p>
-						<p class="text-xs text-slate-500">Historical Data</p>
+						<p class="font-medium text-[#1D1D1F]">Dengue Risk</p>
+						<p class="text-xs text-[#86868B]">Historical Data</p>
 					</div>
 				</div>
 				<div class="text-right">
 					{#if airData.dengueRisk}
-						<Badge variant="destructive" class="text-[10px] px-2 py-0.5 h-6">Risk</Badge>
+						<Badge variant="destructive" class="px-2 py-0.5 h-6">Risk</Badge>
 					{:else}
-						<Badge variant="outline" class="text-[10px] px-2 py-0.5 h-6 bg-emerald-50 text-emerald-700 border-emerald-200">Safe</Badge>
+						<Badge variant="success" class="px-2 py-0.5 h-6">Safe</Badge>
 					{/if}
 				</div>
 			</div>
 
 			<!-- Zoning -->
-			<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+			<div class="flex items-center justify-between py-3 border-b border-[rgba(0,0,0,0.06)] last:border-0">
 				<div class="flex items-center gap-3">
-					<div class="p-2 rounded-lg bg-slate-50 text-slate-600">
+					<div class="p-2 rounded-lg bg-[#F5F5F7] text-[#636366]">
 						<Building size={18} strokeWidth={1.5} />
 					</div>
 					<div>
-						<p class="font-medium text-slate-900">Zoning</p>
-						<p class="text-xs text-slate-500">Area Classification</p>
+						<p class="font-medium text-[#1D1D1F]">Zoning</p>
+						<p class="text-xs text-[#86868B]">Area Classification</p>
 					</div>
 				</div>
 				<div class="text-right">
-					<span class="text-sm font-medium text-slate-700 text-right truncate max-w-[120px]" title={zoningLabel}>
+					<span class="text-sm font-medium text-[#1D1D1F] text-right truncate max-w-[120px]" title={zoningLabel}>
 						{zoningLabel}
 					</span>
 				</div>
@@ -149,4 +146,3 @@
 		{/if}
 	</Card.Content>
 </Card.Root>
-

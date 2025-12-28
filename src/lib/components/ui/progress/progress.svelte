@@ -7,15 +7,14 @@
 
 <BitsProgress.Root
 	class={cn(
-		"relative h-3 w-full overflow-hidden rounded-full bg-slate-100",
+		"relative h-1.5 w-full overflow-hidden rounded-full bg-[rgba(120,120,128,0.16)]",
 		className
 	)}
 	{...restProps}
 	{value}
 >
 	<div
-		class="h-full w-full flex-1 bg-emerald-600 transition-all"
+		class="h-full w-full flex-1 bg-[#007AFF] transition-all duration-500 ease-out"
 		style={`transform: translateX(-${100 - (value || 0)}%)`}
 	></div>
 </BitsProgress.Root>
-

@@ -12,30 +12,32 @@
 	} = $props();
 
 	const variants = {
-		default: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm",
-		destructive: "bg-orange-600 text-white hover:bg-orange-700 shadow-sm",
-		outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-		secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-		ghost: "hover:bg-accent hover:text-accent-foreground",
-		link: "text-primary underline-offset-4 hover:underline",
+		default: "bg-[#007AFF] text-white hover:scale-[1.02] active:scale-[0.98] shadow-sm backdrop-blur-md",
+		destructive: "bg-[#FF3B30] text-white hover:scale-[1.02] active:scale-[0.98] shadow-sm",
+		outline: "border border-[rgba(0,0,0,0.1)] bg-white/80 backdrop-blur-xl hover:bg-white text-[#1D1D1F]",
+		secondary: "bg-[rgba(0,122,255,0.1)] text-[#007AFF] backdrop-blur-xl border border-[rgba(0,122,255,0.2)] hover:bg-[rgba(0,122,255,0.15)]",
+		ghost: "hover:bg-[rgba(0,122,255,0.08)] text-[#007AFF] backdrop-blur-md",
+		link: "text-[#007AFF] underline-offset-4 hover:underline",
 	};
 
 	const sizes = {
-		default: "h-10 px-4 py-2",
-		sm: "h-9 rounded-2xl px-3",
-		lg: "h-11 rounded-2xl px-8",
-		icon: "h-10 w-10",
+		default: "h-[40px] px-6 text-[15px]",
+		sm: "h-[32px] px-4 text-[13px]",
+		lg: "h-[44px] px-8 text-[17px]",
+		icon: "h-[40px] w-[40px] p-0",
 	};
 
 	let variantClass = $derived(variants[variant as keyof typeof variants] || variants.default);
 	let sizeClass = $derived(sizes[size as keyof typeof sizes] || sizes.default);
+	
+	const commonClasses = "inline-flex items-center justify-center whitespace-nowrap rounded-full font-semibold tracking-tight transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:grayscale";
 </script>
 
 {#if href}
 	<a
 		{href}
 		class={cn(
-			"inline-flex items-center justify-center whitespace-nowrap rounded-2xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+			commonClasses,
 			variantClass,
 			sizeClass,
 			className
@@ -47,7 +49,7 @@
 {:else}
 	<BitsButton.Root
 		class={cn(
-			"inline-flex items-center justify-center whitespace-nowrap rounded-2xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+			commonClasses,
 			variantClass,
 			sizeClass,
 			className

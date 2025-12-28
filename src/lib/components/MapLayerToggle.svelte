@@ -24,10 +24,10 @@
 	<!-- Noise Toggle -->
 	<button
 		onclick={() => onNoiseChange(!noiseVisible)}
-		class="group flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300 shadow-lg border backdrop-blur-md
+		class="group flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 backdrop-blur-xl border
 		{noiseVisible 
-			? 'bg-orange-500 text-white border-orange-600' 
-			: 'bg-white/90 text-slate-600 border-slate-200 hover:bg-white'}"
+			? 'bg-[#FF9500] text-white border-transparent' 
+			: 'bg-[rgba(255,255,255,0.8)] text-[#1D1D1F] border-[rgba(0,0,0,0.08)] hover:bg-[rgba(255,255,255,0.9)]'}"
 		aria-label="Toggle noise layer"
 	>
 		<Volume2 class="w-4 h-4" strokeWidth={noiseVisible ? 2 : 1.5} />
@@ -37,10 +37,10 @@
 	<!-- Air Quality Toggle -->
 	<button
 		onclick={() => onAirQualityChange(!airQualityVisible)}
-		class="group flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300 shadow-lg border backdrop-blur-md
+		class="group flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 backdrop-blur-xl border
 		{airQualityVisible 
-			? 'bg-emerald-500 text-white border-emerald-600' 
-			: 'bg-white/90 text-slate-600 border-slate-200 hover:bg-white'}"
+			? 'bg-[#34C759] text-white border-transparent' 
+			: 'bg-[rgba(255,255,255,0.8)] text-[#1D1D1F] border-[rgba(0,0,0,0.08)] hover:bg-[rgba(255,255,255,0.9)]'}"
 		aria-label="Toggle air quality layer"
 	>
 		<Wind class="w-4 h-4" strokeWidth={airQualityVisible ? 2 : 1.5} />
@@ -50,14 +50,13 @@
 	<!-- Safety Toggle -->
 	<button
 		onclick={() => onSafetyPointsChange(!safetyPointsVisible)}
-		class="group flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300 shadow-lg border backdrop-blur-md
+		class="group flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 backdrop-blur-xl border
 		{safetyPointsVisible 
-			? 'bg-blue-500 text-white border-blue-600' 
-			: 'bg-white/90 text-slate-600 border-slate-200 hover:bg-white'}"
+			? 'bg-[#007AFF] text-white border-transparent' 
+			: 'bg-[rgba(255,255,255,0.8)] text-[#1D1D1F] border-[rgba(0,0,0,0.08)] hover:bg-[rgba(255,255,255,0.9)]'}"
 		aria-label="Toggle safety layer"
 	>
 		<Shield class="w-4 h-4" strokeWidth={safetyPointsVisible ? 2 : 1.5} />
 		<span class="text-xs font-semibold">Safety</span>
 	</button>
 </div>
-

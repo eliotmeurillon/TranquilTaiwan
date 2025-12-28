@@ -7,8 +7,7 @@
 	
 	// Shadcn Components
 	import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-	import { Button } from "$lib/components/ui/button";
-
+	
 	// Make locale reactive
 	let currentLocale = $state(getLocale());
 	
@@ -47,8 +46,8 @@
 </script>
 
 <DropdownMenu.Root>
-	<DropdownMenu.Trigger class="h-9 w-9 rounded-full bg-white/70 backdrop-blur-md shadow-sm hover:bg-white text-slate-600 inline-flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
-		<Globe class="h-5 w-5" strokeWidth={1.5} />
+	<DropdownMenu.Trigger class="h-[40px] w-[40px] rounded-full bg-[rgba(255,255,255,0.72)] backdrop-blur-[20px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-[rgba(255,255,255,0.9)] text-[#1D1D1F] inline-flex items-center justify-center transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF] focus-visible:ring-offset-2 border border-[rgba(0,0,0,0.08)]">
+		<Globe class="h-5 w-5 opacity-70" strokeWidth={1.5} />
 		<span class="sr-only">{m.language_switch()}</span>
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content align="end" class="min-w-[150px]">
@@ -59,7 +58,7 @@
 			>
 				{getLocaleName(locale)}
 				{#if currentLocale === locale}
-					<Check class="h-4 w-4 text-emerald-600" />
+					<Check class="h-4 w-4 text-[#007AFF]" />
 				{/if}
 			</DropdownMenu.Item>
 		{/each}

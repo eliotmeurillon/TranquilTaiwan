@@ -24,7 +24,7 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-<div class="min-h-screen bg-slate-50 text-slate-900 font-sans">
+<div class="min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans antialiased selection:bg-[#007AFF] selection:text-white">
 	<!-- Language Switcher in top right corner -->
 	<div class="fixed top-4 right-4 z-50">
 		<LanguageSwitcher />

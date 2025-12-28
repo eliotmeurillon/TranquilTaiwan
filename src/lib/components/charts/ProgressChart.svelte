@@ -8,7 +8,7 @@
 		min = 0,
 		max = 100,
 		label = '',
-		color = '#10b981', // emerald-500 default
+		color = '#34C759', // System Green default
 		showLabels = true,
 		leftLabel = '',
 		rightLabel = ''
@@ -113,10 +113,9 @@
 		<canvas bind:this={canvasElement}></canvas>
 	</div>
 	{#if showLabels && (leftLabel || rightLabel)}
-		<div class="flex justify-between text-[10px] text-slate-400 font-medium px-0.5">
+		<div class="flex justify-between text-[10px] text-[#86868B] font-medium px-0.5">
 			<span>{leftLabel}</span>
 			<span>{rightLabel}</span>
 		</div>
 	{/if}
 </div>
-

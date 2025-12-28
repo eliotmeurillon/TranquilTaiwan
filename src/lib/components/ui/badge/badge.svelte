@@ -8,10 +8,12 @@
 	} = $props();
 
 	const variants = {
-		default: "border-transparent bg-emerald-600 text-white hover:bg-emerald-600/80",
-		secondary: "border-transparent bg-slate-100 text-slate-900 hover:bg-slate-100/80",
-		destructive: "border-transparent bg-orange-600 text-white hover:bg-orange-600/80",
-		outline: "text-foreground",
+		default: "bg-[#007AFF] text-white hover:bg-[#007AFF]/90",
+		secondary: "bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#F5F5F7]/80",
+		destructive: "bg-[#FF3B30] text-white hover:bg-[#FF3B30]/90",
+		outline: "text-[#1D1D1F] border border-black/10",
+		success: "bg-[#34C759] text-white",
+		warning: "bg-[#FF9500] text-white",
 	};
 
 	let variantClass = $derived(variants[variant as keyof typeof variants] || variants.default);
@@ -19,7 +21,7 @@
 
 <div
 	class={cn(
-		"inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+		"inline-flex items-center rounded-full border border-transparent px-3 py-1 text-[13px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#007AFF] focus:ring-offset-2",
 		variantClass,
 		className
 	)}

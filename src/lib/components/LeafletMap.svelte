@@ -63,7 +63,6 @@
 	let circle: any = $state(null);
 	
 	// Lucide Icons SVG paths
-	// Removed fixed width/height to allow flex container to control size or use full size
 	const ICONS = {
 		house: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`,
 		temple: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`, // Bell
@@ -136,7 +135,7 @@
 		const houseIcon = L.divIcon({
 			className: 'bg-transparent border-0', 
 			html: `
-				<div class="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center shadow-xl border-4 border-white">
+				<div class="w-full h-full bg-[#1D1D1F] text-white rounded-full flex items-center justify-center shadow-xl border-4 border-white">
 					<div class="w-6 h-6">
 						${ICONS.house}
 					</div>
@@ -148,14 +147,14 @@
 		});
 
 		L.marker([latitude, longitude], { icon: houseIcon })
-			.bindPopup(`<div class="p-2 text-center font-sans"><strong>${address}</strong><br/>Target Location</div>`)
+			.bindPopup(`<div class="p-2 text-center font-sans"><strong class="text-[#1D1D1F] text-sm">${address}</strong><br/><span class="text-[#86868B] text-xs">Target Location</span></div>`)
 			.addTo(map)
 			.openPopup();
 
 		// 2. 500m Radius Circle
 		circle = L.circle([latitude, longitude], {
-			color: '#64748b', // Slate-500
-			fillColor: '#94a3b8',
+			color: '#86868B', // System Gray
+			fillColor: '#8E8E93',
 			fillOpacity: 0.05,
 			weight: 1,
 			dashArray: '6, 6',
@@ -179,34 +178,34 @@
 			let bgClass = '';
 			
 			// Base classes for consistent modern look
-			const baseClass = 'w-full h-full rounded-full border-[3px] border-white shadow-lg flex items-center justify-center text-white bg-opacity-95';
+			const baseClass = 'w-full h-full rounded-full border-[3px] border-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center text-white bg-opacity-95 backdrop-blur-sm';
 
 			switch (poi.type) {
 				// Nuisances
 				case 'temple':
 					iconHtml = ICONS.temple;
-					bgClass = 'bg-orange-500';
+					bgClass = 'bg-[#FF9500]'; // System Orange
 					break;
 				case 'accident':
 					iconHtml = ICONS.accident;
-					bgClass = 'bg-red-500';
+					bgClass = 'bg-[#FF3B30]'; // System Red
 					break;
 				case 'factory':
 					iconHtml = ICONS.factory;
-					bgClass = 'bg-slate-600';
+					bgClass = 'bg-[#8E8E93]'; // System Gray
 					break;
 				// Amenities
 				case 'youbike':
 					iconHtml = ICONS.youbike;
-					bgClass = 'bg-emerald-500';
+					bgClass = 'bg-[#34C759]'; // System Green
 					break;
 				case 'transport':
 					iconHtml = ICONS.transport;
-					bgClass = 'bg-blue-500';
+					bgClass = 'bg-[#007AFF]'; // System Blue
 					break;
 				case 'trash':
 					iconHtml = ICONS.trash;
-					bgClass = 'bg-amber-500';
+					bgClass = 'bg-[#AF52DE]'; // System Purple
 					break;
 			}
 
@@ -226,13 +225,13 @@
 
 			return L.marker([poi.latitude, poi.longitude], { icon: customIcon })
 				.bindTooltip(`
-					<div class="font-bold text-sm font-sans">${poi.label}</div>
-					${poi.details ? `<div class="text-xs text-slate-500 font-sans">${poi.details}</div>` : ''}
+					<div class="font-bold text-sm font-sans text-[#1D1D1F]">${poi.label}</div>
+					${poi.details ? `<div class="text-xs text-[#86868B] font-sans">${poi.details}</div>` : ''}
 				`, { 
 					direction: 'top', 
 					offset: [0, -12], 
 					opacity: 1,
-					className: 'px-3 py-2 rounded-lg shadow-lg border-0'
+					className: 'glass-tooltip' // Will use global CSS or specific style
 				});
 		};
 
@@ -297,9 +296,11 @@
 
 <style>
 	:global(.leaflet-popup-content-wrapper) {
-		border-radius: 12px;
+		border-radius: 14px;
 		padding: 0;
-		box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+		box-shadow: 0 16px 48px rgba(0,0,0,0.14);
+		background: rgba(255, 255, 255, 0.94);
+		backdrop-filter: blur(20px);
 	}
 	
 	:global(.leaflet-popup-content) {
@@ -323,9 +324,11 @@
 	
 	/* Tooltip styling */
 	:global(.leaflet-tooltip) {
-		border-radius: 8px;
-		border: none !important;
+		border-radius: 10px;
+		border: 0.5px solid rgba(0,0,0,0.04) !important;
 		box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-		padding: 0 !important;
+		padding: 6px 10px !important;
+		background: rgba(255, 255, 255, 0.92) !important;
+		backdrop-filter: blur(10px);
 	}
 </style>

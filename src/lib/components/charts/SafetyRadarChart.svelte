@@ -54,12 +54,12 @@
 					{
 						label: 'Ce lieu',
 						data: quartierData,
-						backgroundColor: 'rgba(16, 185, 129, 0.2)', // Emerald-500 with 0.2 opacity
-						borderColor: '#10b981', // Emerald-500
+						backgroundColor: 'rgba(52, 199, 89, 0.2)', // System Green with 0.2 opacity
+						borderColor: '#34C759', // System Green
 						borderWidth: 2,
-						pointBackgroundColor: '#10b981',
+						pointBackgroundColor: '#34C759',
 						pointBorderColor: '#fff',
-						pointHoverBackgroundColor: '#10b981',
+						pointHoverBackgroundColor: '#34C759',
 						pointHoverBorderColor: '#fff',
 						pointRadius: 4,
 						pointHoverRadius: 6
@@ -67,12 +67,12 @@
 					{
 						label: 'Moyenne Ville',
 						data: moyenneTaipei,
-						backgroundColor: 'rgba(203, 213, 225, 0.2)', // Slate-300 with 0.2 opacity
-						borderColor: '#cbd5e1', // Slate-300
+						backgroundColor: 'rgba(142, 142, 147, 0.2)', // System Gray with 0.2 opacity
+						borderColor: '#8E8E93', // System Gray
 						borderWidth: 2,
-						pointBackgroundColor: '#cbd5e1',
+						pointBackgroundColor: '#8E8E93',
 						pointBorderColor: '#fff',
-						pointHoverBackgroundColor: '#cbd5e1',
+						pointHoverBackgroundColor: '#8E8E93',
 						pointHoverBorderColor: '#fff',
 						pointRadius: 4,
 						pointHoverRadius: 6
@@ -88,11 +88,11 @@
 						position: 'top',
 						labels: {
 							font: {
-								family: 'Inter, system-ui, -apple-system, sans-serif',
+								family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif',
 								size: 12,
 								weight: 500
 							},
-							color: '#64748b',
+							color: '#86868B',
 							padding: 15,
 							usePointStyle: true,
 							pointStyle: 'circle'
@@ -100,15 +100,15 @@
 					},
 					tooltip: {
 						enabled: true,
-						backgroundColor: 'rgba(0, 0, 0, 0.8)',
+						backgroundColor: 'rgba(29, 29, 31, 0.8)',
 						padding: 12,
 						titleFont: {
-							family: 'Inter, system-ui, -apple-system, sans-serif',
+							family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif',
 							size: 12,
 							weight: 600
 						},
 						bodyFont: {
-							family: 'Inter, system-ui, -apple-system, sans-serif',
+							family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif',
 							size: 14
 						},
 						callbacks: {
@@ -126,19 +126,19 @@
 							stepSize: 20
 						},
 						grid: {
-							color: 'rgba(100, 116, 139, 0.1)', // Slate-500 with low opacity
+							color: 'rgba(0, 0, 0, 0.05)', // Light separator
 							lineWidth: 1
 						},
 						pointLabels: {
 							font: {
-								family: 'Inter, system-ui, -apple-system, sans-serif',
+								family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif',
 								size: 11,
 								weight: 500
 							},
-							color: '#64748b' // Slate-500
+							color: '#86868B' // Tertiary Text
 						},
 						angleLines: {
-							color: 'rgba(100, 116, 139, 0.1)' // Slate-500 with low opacity
+							color: 'rgba(0, 0, 0, 0.05)'
 						}
 					}
 				}
@@ -171,4 +171,3 @@
 <div class="h-64 w-full">
 	<canvas bind:this={canvasElement}></canvas>
 </div>
-

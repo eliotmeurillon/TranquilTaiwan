@@ -53,8 +53,8 @@
 		if (!ctx) return;
 
 		const gradient = ctx.createLinearGradient(0, 0, 0, 192);
-		gradient.addColorStop(0, 'rgba(249, 115, 22, 0.3)'); // orange-500 with opacity
-		gradient.addColorStop(1, 'rgba(249, 115, 22, 0)'); // transparent
+		gradient.addColorStop(0, 'rgba(255, 149, 0, 0.3)'); // System Orange with opacity
+		gradient.addColorStop(1, 'rgba(255, 149, 0, 0)'); // transparent
 
 		const config: ChartConfiguration<'line'> = {
 			type: 'line',
@@ -64,13 +64,13 @@
 					{
 						label: 'Niveau sonore (dB)',
 						data: data,
-						borderColor: '#f97316', // orange-500
+						borderColor: '#FF9500', // System Orange
 						backgroundColor: gradient,
 						borderWidth: 2,
 						tension: 0.4, // Smooth curve
 						fill: true,
 						pointRadius: 4,
-						pointBackgroundColor: '#f97316',
+						pointBackgroundColor: '#FF9500',
 						pointBorderColor: '#fff',
 						pointBorderWidth: 2,
 						pointHoverRadius: 6
@@ -86,15 +86,15 @@
 					},
 					tooltip: {
 						enabled: true,
-						backgroundColor: 'rgba(0, 0, 0, 0.8)',
+						backgroundColor: 'rgba(29, 29, 31, 0.8)', // #1D1D1F with opacity
 						padding: 12,
 						titleFont: {
-							family: 'Inter, system-ui, -apple-system, sans-serif',
+							family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif',
 							size: 12,
 							weight: 600
 						},
 						bodyFont: {
-							family: 'Inter, system-ui, -apple-system, sans-serif',
+							family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif',
 							size: 14
 						},
 						callbacks: {
@@ -112,10 +112,10 @@
 						},
 						ticks: {
 							font: {
-								family: 'Inter, system-ui, -apple-system, sans-serif',
+								family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif',
 								size: 11
 							},
-							color: '#64748b'
+							color: '#86868B'
 						}
 					},
 					y: {
@@ -124,14 +124,14 @@
 						max: 100,
 						grid: {
 							display: true,
-							color: 'rgba(100, 116, 139, 0.1)' // Slate-500 with low opacity
+							color: 'rgba(0, 0, 0, 0.05)' // Light separator
 						},
 						ticks: {
 							font: {
-								family: 'Inter, system-ui, -apple-system, sans-serif',
+								family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif',
 								size: 11
 							},
-							color: '#64748b',
+							color: '#86868B',
 							callback: (value) => `${value} dB`
 						}
 					}
@@ -161,8 +161,8 @@
 			const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
 			if (ctx) {
 				const gradient = ctx.createLinearGradient(0, 0, 0, 192);
-				gradient.addColorStop(0, 'rgba(249, 115, 22, 0.3)');
-				gradient.addColorStop(1, 'rgba(249, 115, 22, 0)');
+				gradient.addColorStop(0, 'rgba(255, 149, 0, 0.3)');
+				gradient.addColorStop(1, 'rgba(255, 149, 0, 0)');
 				chartInstance.data.datasets[0].backgroundColor = gradient;
 			}
 			
@@ -183,8 +183,7 @@
 	<div class="h-48 w-full">
 		<canvas bind:this={canvasElement}></canvas>
 	</div>
-	<div class="text-xs text-slate-500 font-medium px-1">
+	<div class="text-xs text-[#86868B] font-medium px-1">
 		{message}
 	</div>
 </div>
-
