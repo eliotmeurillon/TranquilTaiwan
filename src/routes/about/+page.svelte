@@ -8,20 +8,22 @@
 	import { Button } from "$lib/components/ui/button";
 	import { ArrowLeft, Leaf, Target, Users, Mail, Info } from "lucide-svelte";
 	import { generateSEO } from '$lib/utils/seo';
-</script>
 
-{@const seoData = generateSEO(
-	{
-		title: m.about_title(),
-		description: m.about_mission_desc(),
-		image: `${page.url.origin}/logo.png`
-	},
-	page
-)}
+	const seoData = $derived(
+		generateSEO(
+			{
+				title: m.about_title(),
+				description: m.about_mission_desc(),
+				image: `${page.url.origin}/logo.png`
+			},
+			page
+		)
+	);
+</script>
 
 <svelte:head>
 	<!-- Primary Meta Tags -->
-	<title>{seoData.title} - {m.app_title()}</title>
+	<title>{m.app_title()} - {seoData.title}</title>
 	<meta name="title" content="{seoData.title}" />
 	<meta name="description" content={seoData.description} />
 	<link rel="canonical" href={seoData.canonical} />

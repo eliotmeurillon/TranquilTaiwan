@@ -324,7 +324,7 @@
 
 <svelte:head>
 	<!-- Primary Meta Tags -->
-	<title>{seoData.title} - {m.app_title()}</title>
+	<title>{m.app_title()} - {seoData.title}</title>
 	<meta name="title" content="{seoData.title}" />
 	<meta name="description" content={seoData.description} />
 	<link rel="canonical" href={seoData.canonical} />
