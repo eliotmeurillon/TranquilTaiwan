@@ -209,7 +209,7 @@
 		loading = true;
 
 		try {
-			await goto(`/?address=${encodeURIComponent(targetAddress)}`, {
+			await goto(`?address=${encodeURIComponent(targetAddress)}`, {
 				noScroll: false,
 				keepFocus: false,
 				invalidateAll: true
@@ -288,7 +288,7 @@
 	// Derived values for meta tags
 	const shareUrl = $derived(
 		scoreData 
-			? `${page.url.origin}${page.url.pathname}?address=${encodeURIComponent(scoreData.address)}&share=true`
+			? `${page.url.origin}${page.url.pathname === '/' ? '' : page.url.pathname}?address=${encodeURIComponent(scoreData.address)}&share=true`
 			: ''
 	);
 
