@@ -2,9 +2,19 @@ import { describe, it, expect, vi } from 'vitest';
 import { getLivabilityScore } from './dataService';
 
 // Mock the environment module to avoid import errors during test
+// Use a getter to read process.env dynamically at access time
 vi.mock('$env/dynamic/private', () => ({
-	env: {
-		MOENV_API_KEY: process.env.MOENV_API_KEY || ''
+	get env() {
+		const apiKey = process.env.MOENV_API_KEY || '';
+		// Debug: log if API key is loaded (only first few chars for security)
+		if (apiKey) {
+			console.log(`✓ MOENV_API_KEY loaded: ${apiKey.substring(0, 8)}...`);
+		} else {
+			console.warn('⚠ MOENV_API_KEY not found in process.env');
+		}
+		return {
+			MOENV_API_KEY: apiKey
+		};
 	}
 }));
 

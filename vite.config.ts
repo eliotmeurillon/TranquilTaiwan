@@ -3,48 +3,61 @@ import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { loadEnv } from 'vite';
 
-export default defineConfig({
-	plugins: [
-		tailwindcss(),
-		sveltekit(),
-		paraglideVitePlugin({ project: './project.inlang', outdir: './src/lib/paraglide' })
-	],
-	optimizeDeps: {
-		include: ['leaflet', 'leaflet.heat']
-	},
+export default defineConfig(({ mode }) => {
+	// Load environment variables from .env files
+	// This makes them available in process.env for tests
+	const env = loadEnv(mode, process.cwd(), '');
+	
+	// Explicitly set env vars on process.env for Node.js tests
+	// This ensures they're available when the mock accesses process.env
+	Object.assign(process.env, env);
 
-	test: {
-		expect: { requireAssertions: true },
+	return {
+		plugins: [
+			tailwindcss(),
+			sveltekit(),
+			paraglideVitePlugin({ project: './project.inlang', outdir: './src/lib/paraglide' })
+		],
+		optimizeDeps: {
+			include: ['leaflet', 'leaflet.heat']
+		},
 
-		projects: [
-			{
-				extends: './vite.config.ts',
+		test: {
+			expect: { requireAssertions: true },
+			// Load all environment variables (not just VITE_ prefixed ones)
+			env,
 
-				test: {
-					name: 'client',
+			projects: [
+				{
+					extends: './vite.config.ts',
 
-					browser: {
-						enabled: true,
-						provider: playwright(),
-						instances: [{ browser: 'chromium', headless: true }]
-					},
+					test: {
+						name: 'client',
 
-					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
-					exclude: ['src/lib/server/**']
+						browser: {
+							enabled: true,
+							provider: playwright(),
+							instances: [{ browser: 'chromium', headless: true }]
+						},
+
+						include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+						exclude: ['src/lib/server/**']
+					}
+				},
+
+				{
+					extends: './vite.config.ts',
+
+					test: {
+						name: 'server',
+						environment: 'node',
+						include: ['src/**/*.{test,spec}.{js,ts}'],
+						exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+					}
 				}
-			},
-
-			{
-				extends: './vite.config.ts',
-
-				test: {
-					name: 'server',
-					environment: 'node',
-					include: ['src/**/*.{test,spec}.{js,ts}'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
-				}
-			}
-		]
-	}
+			]
+		}
+	};
 });
