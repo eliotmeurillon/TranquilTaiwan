@@ -415,6 +415,7 @@
 		<footer class="py-8 text-center text-[13px] text-[#86868B] space-x-6">
 			<a href="/about" class="hover:text-[#1D1D1F] transition-colors">{m.landing_footer_about()}</a>
 			<a href="/sources" class="hover:text-[#1D1D1F] transition-colors">{m.landing_footer_sources()}</a>
+			<a href="/legal" class="hover:text-[#1D1D1F] transition-colors">{m.landing_footer_legal()}</a>
 		</footer>
 	</div>
 {:else}
