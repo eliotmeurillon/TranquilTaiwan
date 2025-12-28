@@ -540,12 +540,14 @@
 		<!-- 4. Content Container -->
 		<div class="relative z-20 px-4 max-w-4xl mx-auto space-y-8 mt-24">
 			
-			<!-- Native Ad (Partenaire) -->
+			<!-- Native Ad (Partenaire) - Temporairement masqué -->
+			<!--
 			<NativeAdCard 
 				title={m.mock_ad_1_title()}
 				description={m.mock_ad_1_desc()}
 				image="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3" 
 			/>
+			-->
 
 			<!-- Data Cards Grid -->
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -784,7 +786,8 @@
 				{/if}
 			</div>
 
-			<!-- Bottom Ad Placeholder -->
+			<!-- Bottom Ad Placeholder - Temporairement masqué -->
+			<!--
 			<div class="px-4 py-4 max-w-2xl mx-auto">
 				<NativeAdCard 
 					title={m.mock_ad_2_title()}
@@ -792,6 +795,7 @@
 					image="https://images.unsplash.com/photo-1600585152220-90363fe7e115?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3" 
 				/>
 			</div>
+			-->
 		</div>
 		
 		<!-- Floating Action Bar -->
