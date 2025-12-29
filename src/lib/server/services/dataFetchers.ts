@@ -220,6 +220,9 @@ async function fetchWithRetry(
 	let lastError: Error | null = null;
 	let tokenRefreshed = false;
 	
+	// For rate limits (429), only retry twice (2 attempts total)
+	const rateLimitMaxRetries = 2;
+	
 	for (let attempt = 0; attempt <= maxRetries; attempt++) {
 		try {
 			// Add timeout to fetch (30 seconds)
@@ -233,16 +236,27 @@ async function fetchWithRetry(
 			
 			clearTimeout(timeoutId);
 			
-			// If rate limited (429) or gateway timeout (504), wait and retry
-			if (response.status === 429 || response.status === 504) {
-				if (attempt < maxRetries) {
-					// Longer delays for rate limits: 2s, 4s, 8s, 16s, 32s
+			// If rate limited (429), only retry twice then fail
+			if (response.status === 429) {
+				if (attempt < rateLimitMaxRetries) {
 					const delay = baseDelay * Math.pow(2, attempt);
-					console.warn(`${response.status === 429 ? 'Rate limited' : 'Gateway timeout'} (${response.status}) on attempt ${attempt + 1}, retrying in ${delay}ms...`);
+					console.warn(`Rate limited (429) on attempt ${attempt + 1}, retrying in ${delay}ms...`);
 					await new Promise(resolve => setTimeout(resolve, delay));
 					continue;
 				}
-				throw new Error(`${response.status === 429 ? 'Rate limited' : 'Gateway timeout'} after ${maxRetries + 1} attempts`);
+				// After 2 attempts, fail immediately with a clear error
+				throw new Error(`Rate limited (429) after ${rateLimitMaxRetries + 1} attempts. Please try again later.`);
+			}
+			
+			// Gateway timeout (504) can retry more times
+			if (response.status === 504) {
+				if (attempt < maxRetries) {
+					const delay = baseDelay * Math.pow(2, attempt);
+					console.warn(`Gateway timeout (504) on attempt ${attempt + 1}, retrying in ${delay}ms...`);
+					await new Promise(resolve => setTimeout(resolve, delay));
+					continue;
+				}
+				throw new Error(`Gateway timeout (504) after ${maxRetries + 1} attempts`);
 			}
 			
 			// Handle 401 Unauthorized for TDX requests: refresh token and retry once
@@ -492,7 +506,7 @@ out center;`;
 	} catch (e) {
 		const errorMessage = e instanceof Error ? e.message : 'Unknown error';
 		console.error('Failed to fetch noise data:', errorMessage);
-		throw new Error(`Impossible de récupérer les données de bruit: ${errorMessage}`);
+		throw new Error(`Failed to fetch noise data: ${errorMessage}`);
 	}
 }
 
@@ -573,7 +587,7 @@ export async function fetchAirQualityData(coords: AddressCoordinates): Promise<A
 	} catch (e) {
 		const errorMessage = e instanceof Error ? e.message : 'Unknown error';
 		console.error('Failed to fetch air quality data:', errorMessage);
-		throw new Error(`Impossible de récupérer les données de qualité de l'air: ${errorMessage}`);
+		throw new Error(`Failed to fetch air quality data: ${errorMessage}`);
 	}
 }
 
@@ -666,7 +680,7 @@ export async function fetchConvenienceData(coords: AddressCoordinates): Promise<
 	} catch (e) {
 		const errorMessage = e instanceof Error ? e.message : 'Unknown error';
 		console.error('Failed to fetch YouBike data:', errorMessage);
-		throw new Error(`Impossible de récupérer les données YouBike: ${errorMessage}`);
+		throw new Error(`Failed to fetch YouBike data: ${errorMessage}`);
 	}
 
 	// Fetch MRT stations and Bus stops using TDX API
@@ -753,7 +767,7 @@ export async function fetchConvenienceData(coords: AddressCoordinates): Promise<
 	} catch (e) {
 		const errorMessage = e instanceof Error ? e.message : 'Unknown error';
 		console.error('Failed to fetch MRT/Bus data:', errorMessage);
-		throw new Error(`Impossible de récupérer les données de transport public: ${errorMessage}`);
+		throw new Error(`Failed to fetch public transport data: ${errorMessage}`);
 	}
 
 	// Calculate public transport score based on real data
@@ -888,7 +902,7 @@ out center;`;
 	} catch (e) {
 		const errorMessage = e instanceof Error ? e.message : 'Unknown error';
 		console.error('Failed to fetch zoning data:', errorMessage);
-		throw new Error(`Impossible de récupérer les données de zonage: ${errorMessage}`);
+		throw new Error(`Failed to fetch zoning data: ${errorMessage}`);
 	}
 }
 
@@ -896,13 +910,17 @@ out center;`;
  * Helper: call Nominatim and return first result or null with approximation flag
  */
 async function queryNominatim(query: string, originalAddress: string): Promise<{ coordinates: AddressCoordinates; isApproximate: boolean } | null> {
-	const response = await fetch(
+	// Use fetchWithRetry to handle rate limits (Nominatim has strict rate limits)
+	const response = await fetchWithRetry(
 		`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&countrycodes=tw&limit=5`,
 		{
 			headers: {
 				'User-Agent': 'TranquilTaiwan/1.0'
 			}
-		}
+		},
+		2, // Max 2 retries for rate limits
+		1000, // 1 second base delay
+		false // Not a TDX request
 	);
 
 	if (!response.ok) {
@@ -964,24 +982,69 @@ export async function geocodeAddress(address: string): Promise<{ coordinates: Ad
 	
 	// Normalize the address first
 	const normalized = normalizeTaiwanAddress(raw);
+	console.log(`📍 Normalizing address: "${raw}" -> "${normalized}"`);
 	
 	// Generate geocoding candidates (from most specific to least specific)
 	const candidates = generateGeocodingCandidates(normalized);
+	console.log(`📍 Generated ${candidates.length} geocoding candidates`);
 	
 	// Also try original address variants (for non-Taiwan addresses or mixed formats)
-	const originalCandidates: string[] = [raw];
-	if (!/taiwan/i.test(raw) && !raw.includes('台灣')) {
+	// Try original first in case it's already in a format that works
+	const originalCandidates: string[] = [];
+	
+	// If original has Taiwan/Taïwan, try it as-is
+	if (/taiwan|taïwan|台灣/i.test(raw)) {
+		originalCandidates.push(raw);
+	} else {
+		// Try original with Taiwan suffix
+		originalCandidates.push(raw);
 		originalCandidates.push(`${raw}, Taiwan`);
 	}
 	
-	// Combine normalized and original candidates
+	// Also try a cleaned version of the original (remove postal codes, extra commas)
+	const cleanedOriginal = raw
+		.replace(/\b\d{3,5}\b(?=\s*(,|$|台灣|Taiwan|Taïwan))/g, '') // Remove postal codes
+		.replace(/,\s*,/g, ',') // Remove double commas
+		.replace(/,\s*$/, '') // Remove trailing comma
+		.trim();
+	if (cleanedOriginal !== raw && cleanedOriginal.length > 0) {
+		originalCandidates.push(cleanedOriginal);
+		if (!/taiwan|taïwan|台灣/i.test(cleanedOriginal)) {
+			originalCandidates.push(`${cleanedOriginal}, Taiwan`);
+		}
+	}
+	
+	// Try to construct a proper address from components if normalization failed
+	// Extract key components from original address
+	const hasTaipei = /taipei|台北/i.test(raw);
+	const hasZhongzheng = /zhongzheng|中正/i.test(raw);
+	const hasZhongshan = /zhongshan|中山/i.test(raw);
+	const hasSouth = /south|南/i.test(raw);
+	const hasRoad = /road|rd\.?|路/i.test(raw);
+	const buildingMatch = raw.match(/(\d+)[號号]/);
+	const buildingNum = buildingMatch ? buildingMatch[1] : null;
+	
+	// If we have key components, try constructing a proper address
+	if (hasTaipei && hasZhongshan && hasRoad && buildingNum) {
+		const district = hasZhongzheng ? '中正區' : '中山區';
+		const road = hasSouth ? '中山南路' : '中山路';
+		const constructed = `台北市${district}${road}${buildingNum}號`;
+		if (!candidates.includes(constructed) && !originalCandidates.includes(constructed)) {
+			candidates.push(constructed);
+			candidates.push(`${constructed}, Taiwan`);
+		}
+	}
+	
+	// Combine: try normalized candidates first (they're more likely to work), then original variants
 	const allCandidates = [...candidates, ...originalCandidates];
 	
 	// Try each candidate in order, accepting approximate results
 	let bestResult: { coordinates: AddressCoordinates; isApproximate: boolean } | null = null;
 	
-	for (const query of allCandidates) {
+	for (let i = 0; i < allCandidates.length; i++) {
+		const query = allCandidates[i];
 		try {
+			console.log(`🔍 Trying geocoding candidate ${i + 1}/${allCandidates.length}: "${query}"`);
 			const result = await queryNominatim(query, normalized);
 			if (result) {
 				// Prefer exact matches, but accept approximate if that's all we have
@@ -994,9 +1057,12 @@ export async function geocodeAddress(address: string): Promise<{ coordinates: Ad
 					bestResult = result;
 					console.log(`📍 Approximate geocoding match for: ${address} -> ${query}`);
 				}
+			} else {
+				console.log(`❌ No results for candidate: "${query}"`);
 			}
 		} catch (e) {
-			console.error('Geocoding error for query:', query, e);
+			const errorMsg = e instanceof Error ? e.message : String(e);
+			console.error(`❌ Geocoding error for query "${query}":`, errorMsg);
 		}
 	}
 
@@ -1006,7 +1072,8 @@ export async function geocodeAddress(address: string): Promise<{ coordinates: Ad
 		return bestResult;
 	}
 
-	// No geocoding result found - throw error instead of using mock data
-	throw new Error(`Impossible de géocoder l'adresse: ${address}`);
+	// No geocoding result found - throw error with helpful message
+	const errorMsg = `Unable to geocode address: ${address}. Please try a more specific address format (e.g., "台北市松山區敦化南路一段2號" or "No. 2, Section 1, Dunhua South Road, Songshan District, Taipei").`;
+	throw new Error(errorMsg);
 }
 
