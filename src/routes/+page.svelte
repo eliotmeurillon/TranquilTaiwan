@@ -765,7 +765,7 @@
 	<div class="min-h-screen bg-[#FAFAFA] relative pb-32 font-sans text-[#1D1D1F]">
 		
 		<!-- 1. Map Background (Hero) -->
-		<div class="absolute top-0 left-0 w-full h-[60vh] md:h-[65vh] z-0 relative">
+		<div class="absolute top-0 left-0 w-full h-[50vh] md:h-[60vh] z-0">
 			<LeafletMap
 				latitude={scoreData.coordinates.latitude}
 				longitude={scoreData.coordinates.longitude}
@@ -801,35 +801,6 @@
 					</div>
 				</div>
 			{/if}
-
-			<!-- Floating Score Card (Absolute over map) -->
-			<div class="absolute -bottom-20 left-4 right-4 z-20 max-w-4xl mx-auto">
-				<Card.Root class="rounded-[24px] border border-white/40 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] backdrop-blur-[40px] bg-[rgba(255,255,255,0.85)]">
-					<Card.Header class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 px-6">
-						<div class="space-y-2 flex-1 min-w-0">
-							<Card.Title class="text-[28px] leading-[1.1] md:text-[34px] font-bold text-[#1D1D1F] tracking-tight truncate" title={scoreData.address}>{truncateAddress(scoreData.address, 60)}</Card.Title>
-							<div class="flex items-center gap-2 text-[#007AFF] font-medium text-[17px]">
-								<MapPin class="w-4 h-4" strokeWidth={2} />
-								<span>{m.report_env_title()} - {getScoreLabel(scoreData.scores.overall)}</span>
-							</div>
-						</div>
-						
-						<div class="flex items-center gap-4 bg-[rgba(255,255,255,0.5)] p-2 rounded-[20px] border border-[rgba(0,0,0,0.04)] backdrop-blur-md">
-							<div class="flex flex-col items-end">
-								<span class="text-[11px] text-[#86868B] uppercase font-bold tracking-widest mb-1">{m.livability_score()}</span>
-								<Badge variant={scoreData.scores.overall >= 80 ? 'default' : scoreData.scores.overall >= 60 ? 'warning' : 'destructive'} class="text-[13px] h-6 px-2.5">
-									{getScoreLabel(scoreData.scores.overall)}
-								</Badge>
-							</div>
-							<div class="relative flex items-center justify-center w-[60px] h-[60px] rounded-full bg-white shadow-sm border-[4px] {scoreData.scores.overall >= 80 ? 'border-[#34C759]/20' : scoreData.scores.overall >= 60 ? 'border-[#FFCC00]/20' : 'border-[#FF3B30]/20'}">
-								<span class="text-[22px] font-bold {getScoreColor(scoreData.scores.overall)}">
-									{Math.round(scoreData.scores.overall)}
-								</span>
-							</div>
-						</div>
-					</Card.Header>
-				</Card.Root>
-			</div>
 		</div>
 
 		<!-- 2. Header (Transparent) -->
@@ -863,11 +834,40 @@
 		{/if}
 
 		<!-- 3. Spacer -->
-		<div class="h-[60vh] md:h-[65vh] w-full pointer-events-none"></div>
+		<div class="h-[50vh] md:h-[60vh] w-full pointer-events-none"></div>
 
 		<!-- 4. Content Container -->
-		<div class="relative z-20 px-4 max-w-4xl mx-auto space-y-8 mt-24">
+		<div class="relative z-20 px-4 max-w-4xl mx-auto space-y-8 mt-0">
 			
+			<!-- Floating Score Card (Negative Margin Pull) -->
+			<div class="-mt-12 md:-mt-16 mb-8 relative z-20">
+				<Card.Root class="rounded-[24px] border border-white/40 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] backdrop-blur-[40px] bg-[rgba(255,255,255,0.85)]">
+					<Card.Header class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 px-6">
+						<div class="space-y-2 flex-1 min-w-0">
+							<Card.Title class="text-[28px] leading-[1.1] md:text-[34px] font-bold text-[#1D1D1F] tracking-tight truncate" title={scoreData.address}>{truncateAddress(scoreData.address, 60)}</Card.Title>
+							<div class="flex items-center gap-2 text-[#007AFF] font-medium text-[17px]">
+								<MapPin class="w-4 h-4" strokeWidth={2} />
+								<span>{m.report_env_title()} - {getScoreLabel(scoreData.scores.overall)}</span>
+							</div>
+						</div>
+						
+						<div class="flex items-center gap-4 bg-[rgba(255,255,255,0.5)] p-2 rounded-[20px] border border-[rgba(0,0,0,0.04)] backdrop-blur-md">
+							<div class="flex flex-col items-end">
+								<span class="text-[11px] text-[#86868B] uppercase font-bold tracking-widest mb-1">{m.livability_score()}</span>
+								<Badge variant={scoreData.scores.overall >= 80 ? 'default' : scoreData.scores.overall >= 60 ? 'warning' : 'destructive'} class="text-[13px] h-6 px-2.5">
+									{getScoreLabel(scoreData.scores.overall)}
+								</Badge>
+							</div>
+							<div class="relative flex items-center justify-center w-[60px] h-[60px] rounded-full bg-white shadow-sm border-[4px] {scoreData.scores.overall >= 80 ? 'border-[#34C759]/20' : scoreData.scores.overall >= 60 ? 'border-[#FFCC00]/20' : 'border-[#FF3B30]/20'}">
+								<span class="text-[22px] font-bold {getScoreColor(scoreData.scores.overall)}">
+									{Math.round(scoreData.scores.overall)}
+								</span>
+							</div>
+						</div>
+					</Card.Header>
+				</Card.Root>
+			</div>
+
 			<!-- Native Ad (Partenaire) - Temporairement masqué -->
 			<!--
 			<NativeAdCard 
