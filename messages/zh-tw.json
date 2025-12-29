@@ -209,5 +209,16 @@
 	"legal_license_title": "資料授權",
 	"legal_license_desc": "本服務使用的政府資料在政府資料開放授權條款 (OGDL) 下提供。此授權允許免費使用、修改和重新分發資料。",
 	"legal_contact_title": "聯絡方式",
-	"legal_contact_desc": "如有關於此法律資訊的問題，請透過 eliot.meurillon@gmail.com 聯絡我們"
+	"legal_contact_desc": "如有關於此法律資訊的問題，請透過 eliot.meurillon@gmail.com 聯絡我們",
+	"map_instructions_title": "💡 使用說明：",
+	"map_instructions_step1": "1. 在地圖上瀏覽",
+	"map_instructions_step2": "2. 點擊地圖放置標記",
+	"map_instructions_step3": "3. 將在此位置計算分數",
+	"map_popup_click_to_search": "點擊在此位置搜尋",
+	"map_popup_adjust_pin": "如有需要可調整標記",
+	"report_safety_stats": "犯罪率：{crimeRate}% | 事故熱點：{hotspots}",
+	"error_address_not_found_suggestions": "找不到地址。請從建議中選擇地址或嘗試其他搜尋。",
+	"error_address_not_found": "找不到地址。請從建議中選擇地址。",
+	"error_search_failed": "搜尋地址失敗。請再試一次。",
+	"error_calculate_failed": "計算分數失敗。請再試一次。"
 }

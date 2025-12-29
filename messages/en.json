@@ -209,5 +209,16 @@
 	"legal_license_title": "Data License",
 	"legal_license_desc": "Government data used in this service is provided under the Open Government Data License (OGDL). This license allows free use, modification, and redistribution of the data.",
 	"legal_contact_title": "Contact",
-	"legal_contact_desc": "For questions about this legal information, please contact us at eliot.meurillon@gmail.com"
+	"legal_contact_desc": "For questions about this legal information, please contact us at eliot.meurillon@gmail.com",
+	"map_instructions_title": "💡 How to use:",
+	"map_instructions_step1": "1. Navigate on the map",
+	"map_instructions_step2": "2. Click on the map to place a pin",
+	"map_instructions_step3": "3. The score will be calculated at this location",
+	"map_popup_click_to_search": "Click to search at this location",
+	"map_popup_adjust_pin": "Adjust the pin if necessary",
+	"report_safety_stats": "Crime rate: {crimeRate}% | Accident hotspots: {hotspots}",
+	"error_address_not_found_suggestions": "Address not found. Please select an address from the suggestions or try a different search.",
+	"error_address_not_found": "Address not found. Please select an address from the suggestions.",
+	"error_search_failed": "Failed to search address. Please try again.",
+	"error_calculate_failed": "Failed to calculate score. Please try again."
 }

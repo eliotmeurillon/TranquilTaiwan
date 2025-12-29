@@ -361,7 +361,7 @@
 		
 		const targetAddress = queryAddress || address;
 		if (!targetAddress.trim()) {
-			addressValidationError = 'Please enter an address';
+			addressValidationError = m.error_please_enter_address();
 			return;
 		}
 
@@ -374,7 +374,7 @@
 		if (!queryAddress && suggestions.length === 0) {
 			const isValid = await validateAddress(targetAddress);
 			if (!isValid) {
-				addressValidationError = 'Address not found. Please select an address from the suggestions or try a different search.';
+				addressValidationError = m.error_address_not_found_suggestions();
 				loading = false;
 				return;
 			}
@@ -391,7 +391,7 @@
 				// User typed something different, validate it
 				const isValid = await validateAddress(targetAddress);
 				if (!isValid) {
-					addressValidationError = 'Address not found. Please select an address from the suggestions.';
+					addressValidationError = m.error_address_not_found();
 					loading = false;
 					return;
 				}
@@ -428,7 +428,7 @@
 			});
 		} catch (err) {
 			console.error('Navigation error:', err);
-			addressValidationError = 'Failed to search address. Please try again.';
+			addressValidationError = m.error_search_failed();
 		} finally {
 			loading = false;
 		}
@@ -476,7 +476,7 @@
 			});
 		} catch (error) {
 			console.error('Error calculating score:', error);
-			addressValidationError = 'Failed to calculate score. Please try again.';
+			addressValidationError = m.error_calculate_failed();
 			loading = false;
 		}
 	}
@@ -657,10 +657,10 @@
 						searchResult={mapSearchResult}
 					/>
 					<div class="absolute bottom-4 left-4 right-4 z-[1000] bg-white/90 backdrop-blur-md rounded-[12px] px-4 py-2 text-sm text-[#86868B] border border-[rgba(0,0,0,0.08)]">
-						<p class="font-medium text-[#1D1D1F] mb-1">💡 Comment utiliser :</p>
-						<p class="text-xs">1. Naviguez sur la carte</p>
-						<p class="text-xs">2. Cliquez sur la carte pour placer un pin</p>
-						<p class="text-xs">3. Le score sera calculé à cet emplacement</p>
+						<p class="font-medium text-[#1D1D1F] mb-1">{m.map_instructions_title()}</p>
+						<p class="text-xs">{m.map_instructions_step1()}</p>
+						<p class="text-xs">{m.map_instructions_step2()}</p>
+						<p class="text-xs">{m.map_instructions_step3()}</p>
 					</div>
 				</div>
 			</div>
@@ -886,7 +886,7 @@
 								
 								<div class="flex items-center gap-2 text-xs text-[#86868B] bg-[#F5F5F7] p-3 rounded-[14px] border border-[rgba(0,0,0,0.06)]">
 									<AlertCircle class="w-4 h-4 text-[#86868B]" strokeWidth={1.5} />
-									<span>Crime rate: {(safetyData.crimeRate * 100).toFixed(1)}% | Accident hotspots: {safetyData.accidentHotspots}</span>
+									<span>{m.report_safety_stats({ crimeRate: (safetyData.crimeRate * 100).toFixed(1), hotspots: safetyData.accidentHotspots })}</span>
 								</div>
 							</div>
 

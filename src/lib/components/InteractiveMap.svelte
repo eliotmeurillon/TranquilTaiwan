@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import * as m from '$lib/paraglide/messages';
 
 	interface Props {
 		onPinPlaced: (coordinates: { latitude: number; longitude: number }) => void;
@@ -77,7 +78,7 @@
 			// Place new marker
 			marker = L.marker([lat, lng], { icon: pinIcon, draggable: true })
 				.addTo(map)
-				.bindPopup('Cliquez pour rechercher à cet emplacement')
+				.bindPopup(m.map_popup_click_to_search())
 				.openPopup();
 
 			// Add circle to show search radius
@@ -117,7 +118,7 @@
 			// Place marker at search result
 			marker = L.marker([searchResult.latitude, searchResult.longitude], { icon: pinIcon, draggable: true })
 				.addTo(map)
-				.bindPopup(searchResult.address || 'Ajustez le pin si nécessaire')
+				.bindPopup(searchResult.address || m.map_popup_adjust_pin())
 				.openPopup();
 
 			circle = L.circle([searchResult.latitude, searchResult.longitude], {
@@ -179,7 +180,7 @@
 		// Place marker at search result
 		marker = L.marker([searchResult.latitude, searchResult.longitude], { icon: pinIcon, draggable: true })
 			.addTo(map)
-			.bindPopup(searchResult.address || 'Ajustez le pin si nécessaire')
+			.bindPopup(searchResult.address || m.map_popup_adjust_pin())
 			.openPopup();
 
 		circle = L.circle([searchResult.latitude, searchResult.longitude], {
