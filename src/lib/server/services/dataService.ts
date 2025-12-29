@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { getTDXAccessToken } from '$lib/server/tdx-auth';
 
 interface LivabilityScore {
 	noiseScore: number;
@@ -145,7 +146,15 @@ async function getTransportInfo(lat: number, lon: number): Promise<{ nearestYouB
 	const url = 'https://tdx.transportdata.tw/api/basic/v2/Bike/Station/City/Taipei?%24format=JSON';
 
 	try {
-		const response = await fetch(url);
+		// Retrieve token via TDX auth service
+		const token = await getTDXAccessToken();
+
+		const response = await fetch(url, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				Accept: 'application/json'
+			}
+		});
 		
 		if (!response.ok) {
 			throw new Error(`YouBike API failed: ${response.statusText}`);

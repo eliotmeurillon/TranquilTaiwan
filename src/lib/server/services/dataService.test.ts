@@ -6,14 +6,26 @@ import { getLivabilityScore } from './dataService';
 vi.mock('$env/dynamic/private', () => ({
 	get env() {
 		const apiKey = process.env.MOENV_API_KEY || '';
-		// Debug: log if API key is loaded (only first few chars for security)
+		const tdxClientId = process.env.TDX_CLIENT_ID || '';
+		const tdxClientSecret = process.env.TDX_CLIENT_SECRET || '';
+		
+		// Debug: log if API keys are loaded (only first few chars for security)
 		if (apiKey) {
 			console.log(`✓ MOENV_API_KEY loaded: ${apiKey.substring(0, 8)}...`);
 		} else {
 			console.warn('⚠ MOENV_API_KEY not found in process.env');
 		}
+		
+		if (tdxClientId && tdxClientSecret) {
+			console.log(`✓ TDX credentials loaded: ${tdxClientId.substring(0, 10)}...`);
+		} else {
+			console.warn('⚠ TDX_CLIENT_ID or TDX_CLIENT_SECRET not found in process.env');
+		}
+		
 		return {
-			MOENV_API_KEY: apiKey
+			MOENV_API_KEY: apiKey,
+			TDX_CLIENT_ID: tdxClientId,
+			TDX_CLIENT_SECRET: tdxClientSecret
 		};
 	}
 }));
@@ -43,13 +55,15 @@ describe('dataService Integration Tests', () => {
 
 		// 2. Verify Real Data Sources (vs Mocks)
 		
-		// Transport Check (TDX YouBike API)
+		// Transport Check (TDX YouBike API with Authentication)
 		// The mock implementation returns 'YouBike Station (Mock)'
 		if (result.transport.nearestYouBike === 'YouBike Station (Mock)') {
-			console.warn('⚠️ Transport API failed or timed out (Expected 401 until Auth is implemented). Falling back to mock data.');
+			console.warn('⚠️ Transport API failed or timed out. Check TDX credentials and network connection.');
 		} else {
 			console.log(`✅ Transport API Success: Found station "${result.transport.nearestYouBike}" at ${result.transport.distance}m`);
 			expect(result.transport.nearestYouBike).not.toBe('YouBike Station (Mock)');
+			expect(result.transport.distance).toBeGreaterThan(0);
+			expect(result.transport.distance).toBeLessThan(100000); // Reasonable max distance
 		}
 
 		// Air Quality Check (MOENV API)
