@@ -519,10 +519,20 @@ export async function fetchAirQualityData(coords: AddressCoordinates): Promise<A
 	const url = `https://data.moenv.gov.tw/api/v2/aqx_p_432?api_key=${API_KEY}&limit=1000&sort=ImportDate desc&format=json`;
 
 	try {
-		const response = await fetch(url);
+		// Use fetchWithRetry for better reliability in production
+		const response = await fetchWithRetry(
+			url,
+			{
+				headers: {
+					'User-Agent': 'TranquilTaiwan/1.0'
+				}
+			},
+			3, // Max 3 retries
+			2000 // Base delay 2 seconds
+		);
 		
 		if (!response.ok) {
-			throw new Error(`Air Quality API failed: ${response.statusText}`);
+			throw new Error(`Air Quality API failed: ${response.status} ${response.statusText}`);
 		}
 
 		const data = await response.json();
