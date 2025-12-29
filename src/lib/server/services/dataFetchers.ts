@@ -19,6 +19,8 @@ import type {
 	ConvenienceData,
 	ZoningData
 } from './scoreCalculator';
+import { readFile, writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
 
 /**
  * Simple in-memory cache for API responses
@@ -28,9 +30,40 @@ import type {
 const apiCache = new Map<string, { data: any; expiresAt: number }>();
 
 /**
+ * Persistent cache directory for Overpass API responses
+ * This helps avoid hitting rate limits during development and testing
+ */
+const CACHE_DIR = join(process.cwd(), '.cache', 'overpass');
+
+/**
  * Rate limiting: track last request time per API endpoint
  */
 const rateLimiters = new Map<string, number>();
+
+/**
+ * Clear all in-memory caches and rate limiters
+ * Useful for testing to ensure fresh API calls
+ * @param clearPersistentCache - If true, also clears persistent cache files (for testing)
+ */
+export async function clearCache(clearPersistentCache: boolean = false): Promise<void> {
+	apiCache.clear();
+	rateLimiters.clear();
+	
+	// Optionally clear persistent cache files (useful for testing)
+	if (clearPersistentCache) {
+		try {
+			const { readdir, unlink } = await import('fs/promises');
+			const files = await readdir(CACHE_DIR).catch(() => []);
+			await Promise.all(
+				files
+					.filter(file => file.endsWith('.json'))
+					.map(file => unlink(join(CACHE_DIR, file)).catch(() => {}))
+			);
+		} catch (error) {
+			// Cache directory doesn't exist or can't be cleared, ignore
+		}
+	}
+}
 
 /**
  * Cache TTLs (in milliseconds)
@@ -71,8 +104,10 @@ function getCacheKey(prefix: string, coords: AddressCoordinates, precision: numb
 
 /**
  * Get cached data if available and not expired
+ * Checks both in-memory cache and persistent cache (for Overpass data)
  */
-function getCached<T>(key: string): T | null {
+async function getCached<T>(key: string, usePersistentCache: boolean = false): Promise<T | null> {
+	// Check in-memory cache first
 	const cached = apiCache.get(key);
 	if (cached && Date.now() < cached.expiresAt) {
 		return cached.data as T;
@@ -80,17 +115,59 @@ function getCached<T>(key: string): T | null {
 	if (cached) {
 		apiCache.delete(key); // Clean up expired entry
 	}
+	
+	// Check persistent cache for Overpass data
+	if (usePersistentCache && (key.startsWith('noise:') || key.startsWith('zoning:'))) {
+		try {
+			await mkdir(CACHE_DIR, { recursive: true });
+			const cacheFile = join(CACHE_DIR, `${key.replace(/[^a-z0-9]/gi, '_')}.json`);
+			const fileContent = await readFile(cacheFile, 'utf-8');
+			const persistentCache = JSON.parse(fileContent);
+			
+			if (persistentCache.expiresAt && Date.now() < persistentCache.expiresAt) {
+				// Also populate in-memory cache (don't persist again, just use in-memory)
+				const ttl = persistentCache.expiresAt - Date.now();
+				apiCache.set(key, {
+					data: persistentCache.data,
+					expiresAt: persistentCache.expiresAt
+				});
+				return persistentCache.data as T;
+			}
+		} catch (error) {
+			// Cache file doesn't exist or is invalid, continue
+		}
+	}
+	
 	return null;
 }
 
 /**
  * Set cache data
+ * Also persists to disk for Overpass data to survive server restarts
  */
-function setCached<T>(key: string, data: T, ttl: number): void {
+async function setCached<T>(key: string, data: T, ttl: number, usePersistentCache: boolean = false): Promise<void> {
+	const expiresAt = Date.now() + ttl;
+	
 	apiCache.set(key, {
 		data,
-		expiresAt: Date.now() + ttl
+		expiresAt
 	});
+	
+	// Persist to disk for Overpass data
+	if (usePersistentCache && (key.startsWith('noise:') || key.startsWith('zoning:'))) {
+		try {
+			await mkdir(CACHE_DIR, { recursive: true });
+			const cacheFile = join(CACHE_DIR, `${key.replace(/[^a-z0-9]/gi, '_')}.json`);
+			await writeFile(
+				cacheFile,
+				JSON.stringify({ data, expiresAt }, null, 2),
+				'utf-8'
+			);
+		} catch (error) {
+			// Log but don't fail if persistent cache write fails
+			console.warn('Failed to write persistent cache:', error);
+		}
+	}
 	
 	// Clean up cache if it gets too large (prevent memory leaks)
 	// Keep cache size under 1000 entries
@@ -131,15 +208,17 @@ async function rateLimit(apiName: string, delay: number): Promise<void> {
 
 /**
  * Retry fetch with exponential backoff
- * Handles 429 (Rate Limit), 504 (Gateway Timeout), and network errors
+ * Handles 429 (Rate Limit), 504 (Gateway Timeout), 401 (Unauthorized for TDX), and network errors
  */
 async function fetchWithRetry(
 	url: string,
 	options: RequestInit,
 	maxRetries: number = 5,
-	baseDelay: number = 2000
+	baseDelay: number = 2000,
+	isTDXRequest: boolean = false
 ): Promise<Response> {
 	let lastError: Error | null = null;
+	let tokenRefreshed = false;
 	
 	for (let attempt = 0; attempt <= maxRetries; attempt++) {
 		try {
@@ -166,8 +245,30 @@ async function fetchWithRetry(
 				throw new Error(`${response.status === 429 ? 'Rate limited' : 'Gateway timeout'} after ${maxRetries + 1} attempts`);
 			}
 			
-			if (!response.ok && response.status !== 429 && response.status !== 504) {
-				// Non-retryable HTTP errors (400, 401, 403, 404, 500, etc.) should fail immediately
+			// Handle 401 Unauthorized for TDX requests: refresh token and retry once
+			if (response.status === 401 && isTDXRequest && !tokenRefreshed) {
+				console.warn('🔄 TDX token expired (401), refreshing token and retrying...');
+				// Force token refresh by clearing cache and getting a new token
+				const { clearTDXTokenCache } = await import('$lib/server/tdx-auth');
+				clearTDXTokenCache();
+				const freshToken = await getTDXAccessToken(true);
+				// Update the Authorization header in options
+				const updatedHeaders = new Headers(options.headers);
+				updatedHeaders.set('Authorization', `Bearer ${freshToken}`);
+				options.headers = updatedHeaders;
+				tokenRefreshed = true;
+				// Wait a bit before retrying to avoid rate limiting
+				await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay to 2s
+				continue;
+			}
+			
+			// If we still get 401 after refreshing token, fail immediately (don't retry infinitely)
+			if (response.status === 401 && isTDXRequest && tokenRefreshed) {
+				throw new Error(`HTTP 401: Unauthorized - Token refresh failed or credentials invalid`);
+			}
+			
+			if (!response.ok && response.status !== 429 && response.status !== 504 && !(response.status === 401 && isTDXRequest && !tokenRefreshed)) {
+				// Non-retryable HTTP errors should fail immediately
 				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 			}
 			
@@ -176,13 +277,13 @@ async function fetchWithRetry(
 			lastError = error instanceof Error ? error : new Error(String(error));
 			
 			// Check if this is a non-retryable HTTP error (has status code in message)
-			// These should fail immediately without retries
+			// These should fail immediately without retries (except 401 for TDX which we handle above)
 			if (error instanceof Error && error.message.startsWith('HTTP ')) {
 				const statusMatch = error.message.match(/HTTP (\d+):/);
 				if (statusMatch) {
 					const status = parseInt(statusMatch[1], 10);
-					// Only retry on 429 and 504, fail immediately on others
-					if (status !== 429 && status !== 504) {
+					// Only retry on 429, 504, and 401 (for TDX)
+					if (status !== 429 && status !== 504 && !(status === 401 && isTDXRequest && !tokenRefreshed)) {
 						throw error; // Don't retry non-retryable HTTP errors
 					}
 				}
@@ -208,6 +309,35 @@ async function fetchWithRetry(
 	}
 	
 	throw lastError || new Error('Fetch failed after retries');
+}
+
+/**
+ * Helper function to make TDX API requests with automatic token refresh
+ * Ensures token is fresh before each request and handles 401 errors
+ */
+export async function fetchTDXWithToken(
+	url: string,
+	options: RequestInit = {},
+	maxRetries: number = 5
+): Promise<Response> {
+	// Always get a fresh token before each TDX request
+	await rateLimit('tdx', RATE_LIMITS.TDX);
+	const token = await getTDXAccessToken();
+	
+	const headers = new Headers(options.headers);
+	headers.set('Authorization', `Bearer ${token}`);
+	headers.set('Accept', 'application/json');
+	
+	return fetchWithRetry(
+		url,
+		{
+			...options,
+			headers
+		},
+		maxRetries,
+		3000, // 3 second base delay for TDX
+		true // Mark as TDX request for 401 handling
+	);
 }
 
 /**
@@ -280,19 +410,20 @@ function calculateDistance(
 export async function fetchNoiseData(coords: AddressCoordinates): Promise<NoiseData> {
 	const { latitude, longitude } = coords;
 	
-	// Check cache first
+	// Check cache first (both in-memory and persistent)
 	const cacheKey = getCacheKey('noise', coords);
-	const cached = getCached<NoiseData>(cacheKey);
+	const cached = await getCached<NoiseData>(cacheKey, true);
 	if (cached) {
 		console.log('✅ Using cached noise data');
 		return cached;
 	}
 	
-	// Overpass API query to get temples, convenience stores, and major roads within 300m
+	// Overpass API query to get temples, convenience stores, and major roads within 250m (reduced from 300m)
+	// Reduced radius to reduce query complexity and avoid rate limits
 	const overpassQuery = `[out:json];
 (
-  node["amenity"="place_of_worship"](around:300, ${latitude}, ${longitude});
-  node["shop"="convenience"](around:300, ${latitude}, ${longitude});
+  node["amenity"="place_of_worship"](around:250, ${latitude}, ${longitude});
+  node["shop"="convenience"](around:250, ${latitude}, ${longitude});
   way["highway"~"primary|secondary"](around:100, ${latitude}, ${longitude});
 );
 out center;`;
@@ -354,8 +485,8 @@ out center;`;
 			trafficIntensity: Math.round(trafficIntensity * 10) / 10
 		};
 
-		// Cache the result
-		setCached(cacheKey, result, CACHE_TTL.NOISE);
+		// Cache the result (both in-memory and persistent)
+		await setCached(cacheKey, result, CACHE_TTL.NOISE, true);
 		return result;
 
 	} catch (e) {
@@ -477,7 +608,7 @@ export async function fetchSafetyData(coords: AddressCoordinates): Promise<Safet
 export async function fetchConvenienceData(coords: AddressCoordinates): Promise<ConvenienceData> {
 	// Check cache first
 	const cacheKey = getCacheKey('convenience', coords);
-	const cached = getCached<ConvenienceData>(cacheKey);
+	const cached = await getCached<ConvenienceData>(cacheKey);
 	if (cached) {
 		console.log('✅ Using cached convenience data');
 		return cached;
@@ -493,20 +624,8 @@ export async function fetchConvenienceData(coords: AddressCoordinates): Promise<
 	let nearestName: string | undefined;
 
 	try {
-		await rateLimit('tdx', RATE_LIMITS.TDX);
-		const token = await getTDXAccessToken();
-
-		const response = await fetchWithRetry(
-			youbikeUrl,
-			{
-				headers: {
-					Authorization: `Bearer ${token}`,
-					Accept: 'application/json'
-				}
-			},
-			5, // Increased retries for TDX
-			3000 // Increased base delay to 3 seconds
-		);
+		// Use helper function that ensures fresh token and handles 401 errors
+		const response = await fetchTDXWithToken(youbikeUrl, {}, 5);
 
 		if (!response.ok) {
 			throw new Error(`YouBike API failed: ${response.status} ${response.statusText}`);
@@ -557,24 +676,11 @@ export async function fetchConvenienceData(coords: AddressCoordinates): Promise<
 	let busStops = 0;
 	let nearestBusDistance = Infinity;
 
-		try {
-			await rateLimit('tdx', RATE_LIMITS.TDX);
-			const token = await getTDXAccessToken();
-
-			// Fetch MRT stations within 1km
-			const mrtUrl = `https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Station/TRTC?%24format=JSON&%24spatialFilter=nearby(${coords.latitude},${coords.longitude},1000)`;
-			
-			const mrtResponse = await fetchWithRetry(
-				mrtUrl,
-				{
-					headers: {
-						Authorization: `Bearer ${token}`,
-						Accept: 'application/json'
-					}
-				},
-				5, // Increased retries for TDX
-				3000 // Increased base delay to 3 seconds
-			);
+	try {
+		// Fetch MRT stations within 1km - token refreshed automatically by fetchTDXWithToken
+		const mrtUrl = `https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Station/TRTC?%24format=JSON&%24spatialFilter=nearby(${coords.latitude},${coords.longitude},1000)`;
+		
+		const mrtResponse = await fetchTDXWithToken(mrtUrl, {}, 5);
 
 		if (mrtResponse.ok) {
 			const mrtData = await mrtResponse.json();
@@ -608,21 +714,10 @@ export async function fetchConvenienceData(coords: AddressCoordinates): Promise<
 			}
 		}
 
-		// Fetch Bus stops within 500m
-		await rateLimit('tdx', RATE_LIMITS.TDX);
+		// Fetch Bus stops within 500m - token refreshed automatically by fetchTDXWithToken
 		const busUrl = `https://tdx.transportdata.tw/api/basic/v2/Bus/Stop/City/Taipei?%24format=JSON&%24spatialFilter=nearby(${coords.latitude},${coords.longitude},500)`;
 		
-		const busResponse = await fetchWithRetry(
-			busUrl,
-			{
-				headers: {
-					Authorization: `Bearer ${token}`,
-					Accept: 'application/json'
-				}
-			},
-			5, // Increased retries for TDX
-			3000 // Increased base delay to 3 seconds
-		);
+		const busResponse = await fetchTDXWithToken(busUrl, {}, 5);
 
 		if (busResponse.ok) {
 			const busData = await busResponse.json();
@@ -714,7 +809,7 @@ export async function fetchConvenienceData(coords: AddressCoordinates): Promise<
 	};
 
 	// Cache the result
-	setCached(cacheKey, result, CACHE_TTL.TDX);
+	await setCached(cacheKey, result, CACHE_TTL.TDX);
 	return result;
 }
 
@@ -725,24 +820,25 @@ export async function fetchConvenienceData(coords: AddressCoordinates): Promise<
 export async function fetchZoningData(coords: AddressCoordinates): Promise<ZoningData> {
 	const { latitude, longitude } = coords;
 	
-	// Check cache first
+	// Check cache first (both in-memory and persistent)
 	const cacheKey = getCacheKey('zoning', coords);
-	const cached = getCached<ZoningData>(cacheKey);
+	const cached = await getCached<ZoningData>(cacheKey, true);
 	if (cached) {
 		console.log('✅ Using cached zoning data');
 		return cached;
 	}
 	
-	// Overpass API query to get landuse tags within 200m
+	// Overpass API query to get landuse tags within 150m (reduced from 200m)
+	// Reduced radius to reduce query complexity and avoid rate limits
 	// This checks for industrial and commercial zones nearby
 	const overpassQuery = `[out:json];
 (
-  way["landuse"="industrial"](around:200, ${latitude}, ${longitude});
-  way["landuse"="commercial"](around:200, ${latitude}, ${longitude});
-  way["landuse"="retail"](around:200, ${latitude}, ${longitude});
-  relation["landuse"="industrial"](around:200, ${latitude}, ${longitude});
-  relation["landuse"="commercial"](around:200, ${latitude}, ${longitude});
-  relation["landuse"="retail"](around:200, ${latitude}, ${longitude});
+  way["landuse"="industrial"](around:150, ${latitude}, ${longitude});
+  way["landuse"="commercial"](around:150, ${latitude}, ${longitude});
+  way["landuse"="retail"](around:150, ${latitude}, ${longitude});
+  relation["landuse"="industrial"](around:150, ${latitude}, ${longitude});
+  relation["landuse"="commercial"](around:150, ${latitude}, ${longitude});
+  relation["landuse"="retail"](around:150, ${latitude}, ${longitude});
 );
 out center;`;
 
@@ -785,8 +881,8 @@ out center;`;
 			futureDevelopmentRisk: Math.round(futureDevelopmentRisk * 10) / 10
 		};
 
-		// Cache the result
-		setCached(cacheKey, result, CACHE_TTL.ZONING);
+		// Cache the result (both in-memory and persistent)
+		await setCached(cacheKey, result, CACHE_TTL.ZONING, true);
 		return result;
 
 	} catch (e) {

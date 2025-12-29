@@ -10,8 +10,22 @@ interface TDXTokenResponse {
 	token_type: string;
 }
 
-export async function getTDXAccessToken(): Promise<string> {
+/**
+ * Force refresh the TDX token by clearing the cache
+ * Useful when we get a 401 error and need a fresh token
+ */
+export function clearTDXTokenCache(): void {
+	cachedToken = null;
+	tokenExpiration = 0;
+}
+
+export async function getTDXAccessToken(forceRefresh: boolean = false): Promise<string> {
 	const now = Date.now();
+
+	// If force refresh is requested, clear cache first
+	if (forceRefresh) {
+		clearTDXTokenCache();
+	}
 
 	// If we have a valid cached token (with 5 minutes safety margin), reuse it
 	if (cachedToken && now < tokenExpiration - 300_000) {

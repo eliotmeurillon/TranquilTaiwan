@@ -28,6 +28,8 @@ export default defineConfig(({ mode }) => {
 			expect: { requireAssertions: true },
 			// Load all environment variables (not just VITE_ prefixed ones)
 			env,
+			// Global test timeout for integration tests hitting external APIs
+			testTimeout: 120000, // 2 minutes for slow API calls with retries
 
 			projects: [
 				{
