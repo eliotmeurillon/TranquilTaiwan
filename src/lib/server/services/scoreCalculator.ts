@@ -47,6 +47,7 @@ export interface SafetyData {
 export interface ConvenienceData {
 	youbikeStations: number;
 	nearestYoubikeDistance: number; // meters
+	nearestYoubikeName?: string; // optional, for display
 	trashCollectionPoints: number;
 	waterPoints: number;
 	publicTransportScore: number;

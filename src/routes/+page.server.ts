@@ -6,7 +6,38 @@ import type { PageServerLoad } from './$types';
  */
 export const load: PageServerLoad = async ({ url, fetch, setHeaders }) => {
 	const address = url.searchParams.get('address');
+	const lat = url.searchParams.get('lat');
+	const lon = url.searchParams.get('lon');
 	const shareMode = url.searchParams.get('share') === 'true';
+
+	// If coordinates provided, use them directly
+	if (lat && lon) {
+		try {
+			const recalcResponse = await fetch('/api/score/recalculate', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ latitude: parseFloat(lat), longitude: parseFloat(lon) })
+			});
+			
+			if (recalcResponse.ok) {
+				const recalcData = await recalcResponse.json();
+				const addressData = address ? await fetch(`/api/score?address=${encodeURIComponent(address)}`).then(r => r.ok ? r.json() : null) : null;
+				
+				const scoreData = {
+					...(addressData || {}),
+					address: address || `Lat: ${lat}, Lon: ${lon}`,
+					coordinates: recalcData.coordinates,
+					scores: recalcData.scores,
+					detailedData: recalcData.detailedData,
+					isApproximate: false
+				};
+				
+				return { scoreData, address: address || scoreData.address, shareMode };
+			}
+		} catch (err) {
+			console.error('Error loading score from coordinates:', err);
+		}
+	}
 
 	// If no address in URL, return empty state
 	if (!address) {

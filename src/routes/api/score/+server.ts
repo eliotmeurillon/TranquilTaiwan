@@ -27,6 +27,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		
 		let addressRecord;
 		let coordinates;
+		let isApproximate = false;
 		
 		if (existingAddress.length > 0) {
 			addressRecord = existingAddress[0];
@@ -34,12 +35,25 @@ export const GET: RequestHandler = async ({ url }) => {
 				latitude: parseFloat(addressRecord.latitude || '0'),
 				longitude: parseFloat(addressRecord.longitude || '0')
 			};
+			// Check if approximate flag exists in rawData (for backward compatibility)
+			const existingScore = await db
+				.select()
+				.from(livabilityScores)
+				.where(eq(livabilityScores.addressId, addressRecord.id))
+				.orderBy(desc(livabilityScores.calculatedAt))
+				.limit(1);
+			if (existingScore.length > 0 && existingScore[0].rawData) {
+				isApproximate = (existingScore[0].rawData as any)?.isApproximate || false;
+			}
 		} else {
 			// Geocode the address
-			coordinates = await geocodeAddress(address);
-			if (!coordinates) {
+			const geocodeResult = await geocodeAddress(address);
+			if (!geocodeResult) {
 				error(400, 'Could not geocode address');
 			}
+			
+			coordinates = geocodeResult.coordinates;
+			isApproximate = geocodeResult.isApproximate;
 			
 			// Save address to database
 			const [newAddress] = await db
@@ -109,6 +123,12 @@ export const GET: RequestHandler = async ({ url }) => {
 			scoreRecord = newScore;
 		}
 		
+		// Store isApproximate in rawData for persistence
+		const rawDataWithApproximate = {
+			...(scoreRecord.rawData as any || {}),
+			isApproximate
+		};
+		
 		// Return complete score with all detailed data (free service)
 		return json({
 			address: addressRecord.address,
@@ -116,6 +136,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				latitude: parseFloat(addressRecord.latitude || '0'),
 				longitude: parseFloat(addressRecord.longitude || '0')
 			},
+			isApproximate,
 			scores: {
 				overall: parseFloat(scoreRecord.overallScore || '0'),
 				noise: parseFloat(scoreRecord.noiseScore || '0'),
@@ -124,7 +145,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				convenience: parseFloat(scoreRecord.convenienceScore || '0'),
 				zoningRisk: parseFloat(scoreRecord.zoningRiskScore || '0')
 			},
-			detailedData: scoreRecord.rawData
+			detailedData: rawDataWithApproximate
 		});
 		
 	} catch (err) {

@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import LeafletMap from '$lib/components/LeafletMap.svelte';
+	import InteractiveMap from '$lib/components/InteractiveMap.svelte';
 	import MapLayerToggle from '$lib/components/MapLayerToggle.svelte';
 	import NativeAdCard from '$lib/components/NativeAdCard.svelte';
 	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
@@ -64,6 +65,7 @@
 	interface ScoreData {
 		address: string;
 		coordinates: { latitude: number; longitude: number };
+		isApproximate?: boolean;
 		scores: {
 			overall: number;
 			noise: number;
@@ -82,6 +84,31 @@
 	// Local UI state
 	let address = $state('');
 	let loading = $state(false);
+	let showSuggestions = $state(false);
+	let addressValidationError = $state<string | null>(null);
+	let isFetchingSuggestions = $state(false);
+	let mapSearchResult = $state<{ latitude: number; longitude: number; address?: string } | null>(null);
+	let selectedCoordinates = $state<{ latitude: number; longitude: number } | null>(null);
+	
+	type AddressSuggestion = {
+		displayName: string;
+		address: string;
+		latitude: number;
+		longitude: number;
+		placeId: number;
+		components: {
+			road?: string;
+			houseNumber?: string;
+			neighbourhood?: string;
+			district?: string;
+			city?: string;
+			postcode?: string;
+		};
+	};
+	
+	let suggestions = $state<AddressSuggestion[]>([]);
+	let selectedSuggestionIndex = $state(-1);
+	let suggestionTimeout: ReturnType<typeof setTimeout> | null = null;
 	
 	// Map layer visibility states (bound to LeafletMap)
 	let noiseVisible = $state(true);
@@ -91,7 +118,21 @@
 	// Sync address with URL parameter when data changes
 	$effect(() => {
 		address = data.address ?? '';
+		showSuggestions = false;
+		suggestions = [];
 	});
+
+	// Cleanup timeout on component destroy (client-side only)
+	if (browser) {
+		$effect(() => {
+			return () => {
+				if (suggestionTimeout) {
+					clearTimeout(suggestionTimeout);
+					suggestionTimeout = null;
+				}
+			};
+		});
+	}
 	
 	// Derived points of interest from score data
 	const pointsOfInterest = $derived(scoreData ? generatePOIs(scoreData) : []);
@@ -153,19 +194,8 @@
 			});
 		}
 
-		// 4. YouBike (Amenity)
-		if (detailedData.convenience?.youbikeStations) {
-			for (let i = 0; i < detailedData.convenience.youbikeStations; i++) {
-				const pt = randomPoint(100, 450);
-				pois.push({
-					type: 'youbike',
-					latitude: pt.lat,
-					longitude: pt.lng,
-					label: m.poi_youbike_label(),
-					details: `${Math.floor(Math.random() * 20)} ${m.poi_bikes_available()}`
-				});
-			}
-		}
+		// 4. YouBike (Amenity) - Don't show on map to avoid visual clutter
+		// Only the nearest station is shown in the convenience list below
 
 		// 5. Transport (Amenity) - Mock based on score if no count
 		const transportCount = Math.ceil(detailedData.convenience?.publicTransportScore / 30) || 1;
@@ -197,17 +227,199 @@
 		return pois;
 	}
 
+	async function fetchSuggestions(query: string) {
+		// Ensure we're in the browser before making fetch calls
+		if (!browser || query.trim().length < 2) {
+			suggestions = [];
+			showSuggestions = false;
+			isFetchingSuggestions = false;
+			return;
+		}
+
+		isFetchingSuggestions = true;
+		try {
+			const response = await fetch(`/api/geocode/suggestions?q=${encodeURIComponent(query)}`);
+			if (!response.ok) {
+				suggestions = [];
+				showSuggestions = false;
+				return;
+			}
+			
+			const data = await response.json();
+			suggestions = data.suggestions || [];
+			showSuggestions = suggestions.length > 0;
+			selectedSuggestionIndex = -1;
+		} catch (error) {
+			console.error('Error fetching suggestions:', error);
+			suggestions = [];
+			showSuggestions = false;
+		} finally {
+			isFetchingSuggestions = false;
+		}
+	}
+
+	function handleAddressInput(e: Event) {
+		// Only handle input events in the browser
+		if (!browser) return;
+		
+		const target = e.target as HTMLInputElement;
+		address = target.value;
+		showSuggestions = false;
+		addressValidationError = null; // Clear validation error when user types
+		
+		// Debounce suggestions fetch
+		if (suggestionTimeout) {
+			clearTimeout(suggestionTimeout);
+		}
+		
+		// Show loading indicator immediately if query is long enough
+		if (address.trim().length >= 2) {
+			isFetchingSuggestions = true;
+		} else {
+			isFetchingSuggestions = false;
+			suggestions = [];
+		}
+		
+		suggestionTimeout = setTimeout(() => {
+			// Double-check browser context before fetch
+			if (browser && address.trim().length >= 2) {
+				fetchSuggestions(address);
+			} else {
+				suggestions = [];
+				showSuggestions = false;
+				isFetchingSuggestions = false;
+			}
+		}, 300);
+	}
+
+	function selectSuggestion(suggestion: AddressSuggestion) {
+		address = suggestion.address;
+		showSuggestions = false;
+		suggestions = [];
+		// Center map on suggestion location (don't search yet, wait for pin placement)
+		mapSearchResult = {
+			latitude: suggestion.latitude,
+			longitude: suggestion.longitude,
+			address: suggestion.displayName
+		};
+		selectedCoordinates = null; // Reset selected coordinates
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (!showSuggestions || suggestions.length === 0) {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				// If no suggestions available, validate before searching
+				searchAddress();
+			}
+			return;
+		}
+
+		switch (e.key) {
+			case 'ArrowDown':
+				e.preventDefault();
+				selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, suggestions.length - 1);
+				break;
+			case 'ArrowUp':
+				e.preventDefault();
+				selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+				break;
+			case 'Enter':
+				e.preventDefault();
+				if (selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
+					selectSuggestion(suggestions[selectedSuggestionIndex]);
+				} else {
+					// If user typed Enter but didn't select, validate first
+					searchAddress();
+				}
+				break;
+			case 'Escape':
+				showSuggestions = false;
+				break;
+		}
+	}
+
+	async function validateAddress(addressToValidate: string): Promise<boolean> {
+		if (!browser) return false;
+		
+		try {
+			// Try to get suggestions - if we get any results (even street/district level), it's valid
+			const response = await fetch(`/api/geocode/suggestions?q=${encodeURIComponent(addressToValidate)}&limit=1`);
+			if (!response.ok) return false;
+			
+			const data = await response.json();
+			// Accept any result - even street/district level is acceptable for our use case
+			return (data.suggestions || []).length > 0;
+		} catch (error) {
+			console.error('Error validating address:', error);
+			return false;
+		}
+	}
+
 	async function searchAddress(queryAddress?: string) {
 		if (!browser) return;
 		
 		const targetAddress = queryAddress || address;
 		if (!targetAddress.trim()) {
-			// Error will be shown via data.error from server
+			addressValidationError = 'Please enter an address';
 			return;
 		}
 
+		// Hide suggestions when searching
+		showSuggestions = false;
+		addressValidationError = null;
 		loading = true;
 
+		// Validate address before searching - block if Nominatim can't find it
+		if (!queryAddress && suggestions.length === 0) {
+			const isValid = await validateAddress(targetAddress);
+			if (!isValid) {
+				addressValidationError = 'Address not found. Please select an address from the suggestions or try a different search.';
+				loading = false;
+				return;
+			}
+		}
+
+		// If we have suggestions but user didn't select one, check if typed address matches
+		if (!queryAddress && suggestions.length > 0) {
+			const exactMatch = suggestions.find((s: AddressSuggestion) => 
+				s.address.toLowerCase() === targetAddress.toLowerCase() ||
+				s.displayName.toLowerCase() === targetAddress.toLowerCase()
+			);
+			
+			if (!exactMatch) {
+				// User typed something different, validate it
+				const isValid = await validateAddress(targetAddress);
+				if (!isValid) {
+					addressValidationError = 'Address not found. Please select an address from the suggestions.';
+					loading = false;
+					return;
+				}
+			}
+		}
+
+		// Instead of navigating immediately, geocode the address and center the map
+		try {
+			const response = await fetch(`/api/geocode/suggestions?q=${encodeURIComponent(targetAddress)}&limit=1`);
+			if (response.ok) {
+				const data = await response.json();
+				if (data.suggestions && data.suggestions.length > 0) {
+					const suggestion = data.suggestions[0];
+					mapSearchResult = {
+						latitude: suggestion.latitude,
+						longitude: suggestion.longitude,
+						address: suggestion.displayName
+					};
+					selectedCoordinates = null; // Reset selected coordinates
+					loading = false;
+					return;
+				}
+			}
+		} catch (err) {
+			console.error('Geocoding error:', err);
+		}
+
+		// Fallback: navigate with address (old behavior)
 		try {
 			await goto(`?address=${encodeURIComponent(targetAddress)}`, {
 				noScroll: false,
@@ -215,14 +427,59 @@
 				invalidateAll: true
 			});
 		} catch (err) {
-			// Navigation error - will be handled by error state
 			console.error('Navigation error:', err);
+			addressValidationError = 'Failed to search address. Please try again.';
 		} finally {
-			// Reset loading after navigation completes
 			loading = false;
 		}
 	}
 
+	async function handlePinPlaced(coordinates: { latitude: number; longitude: number }) {
+		if (!browser) return;
+		
+		selectedCoordinates = coordinates;
+		loading = true;
+		
+		try {
+			// Reverse geocode to get address from coordinates
+			const response = await fetch(`/api/score/recalculate`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(coordinates)
+			});
+			
+			if (!response.ok) {
+				throw new Error('Failed to calculate score');
+			}
+			
+			const scoreData = await response.json();
+			
+			// Reverse geocode to get address
+			const reverseResponse = await fetch(
+				`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordinates.latitude}&lon=${coordinates.longitude}&addressdetails=1`,
+				{
+					headers: { 'User-Agent': 'TranquilTaiwan/1.0' }
+				}
+			);
+			
+			let addressFromCoords = `Lat: ${coordinates.latitude.toFixed(6)}, Lon: ${coordinates.longitude.toFixed(6)}`;
+			if (reverseResponse.ok) {
+				const reverseData = await reverseResponse.json();
+				addressFromCoords = reverseData.display_name || addressFromCoords;
+			}
+			
+			// Navigate with coordinates
+			await goto(`?lat=${coordinates.latitude}&lon=${coordinates.longitude}&address=${encodeURIComponent(addressFromCoords)}`, {
+				noScroll: false,
+				keepFocus: false,
+				invalidateAll: true
+			});
+		} catch (error) {
+			console.error('Error calculating score:', error);
+			addressValidationError = 'Failed to calculate score. Please try again.';
+			loading = false;
+		}
+	}
 
 	// Derived utility functions
 	const getScoreColor = (score: number): string => {
@@ -255,6 +512,13 @@
 		const concern = concerns[0].score < 70 ? concerns[0].name : m.teaser_concern_none();
 
 		return m.teaser_summary({ noiseLevel, concern });
+	};
+
+	// Format YouBike station name by removing "YouBike2.0_" prefix
+	const formatYouBikeName = (name: string | undefined | null): string => {
+		if (!name) return m.poi_youbike_label();
+		// Remove "YouBike2.0_" or "YouBike2.0" prefix if present
+		return name.replace(/^YouBike2\.0[_]?/i, '').trim() || m.poi_youbike_label();
 	};
 
 	async function shareResult() {
@@ -374,8 +638,8 @@
 		</header>
 
 		<!-- Hero Section -->
-		<main class="flex-grow flex flex-col items-center justify-center px-4 w-full max-w-2xl mx-auto -mt-10">
-			<div class="text-center mb-10 space-y-4">
+		<main class="flex-grow flex flex-col items-center justify-start px-4 w-full max-w-6xl mx-auto pt-24 pb-10">
+			<div class="text-center mb-12 space-y-4">
 				<h1 class="text-4xl md:text-5xl font-bold text-[#1D1D1F] leading-tight tracking-tight">
 					{m.hero_title_prefix()} <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#007AFF] to-[#5856D6]">{m.hero_title_suffix()}</span>
 				</h1>
@@ -384,33 +648,127 @@
 				</p>
 			</div>
 
-			<!-- Search Component -->
-			<div class="w-full relative group z-20">
-				<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-					<!-- Helper icon if needed -->
+			<!-- Map + Search Layout -->
+			<div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+				<!-- Interactive Map -->
+				<div class="w-full h-[400px] lg:h-[500px] rounded-[18px] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.08)] relative">
+					<InteractiveMap
+						onPinPlaced={handlePinPlaced}
+						searchResult={mapSearchResult}
+					/>
+					<div class="absolute bottom-4 left-4 right-4 z-[1000] bg-white/90 backdrop-blur-md rounded-[12px] px-4 py-2 text-sm text-[#86868B] border border-[rgba(0,0,0,0.08)]">
+						<p class="font-medium text-[#1D1D1F] mb-1">💡 Comment utiliser :</p>
+						<p class="text-xs">1. Recherchez une rue ou un quartier</p>
+						<p class="text-xs">2. Cliquez sur la carte pour placer un pin</p>
+						<p class="text-xs">3. Le score sera calculé à cet emplacement</p>
+					</div>
 				</div>
-				<input
+
+				<!-- Search Component with Autocomplete -->
+				<div class="flex flex-col justify-center space-y-4">
+					<div class="w-full relative group z-20">
+						<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+							<!-- Helper icon if needed -->
+						</div>
+						<input
 					type="text"
 					bind:value={address}
-					placeholder={m.search_placeholder()}
-					class="w-full h-[52px] md:h-[60px] pl-6 pr-14 rounded-[18px] text-[17px] bg-[rgba(255,255,255,0.8)] backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.08)] focus:border-[#007AFF] focus:ring-4 focus:ring-[#007AFF]/10 transition-all placeholder:text-[#86868B] text-[#1D1D1F]"
-					onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && searchAddress()}
-				/>
-				<button
-					onclick={() => searchAddress()}
-					disabled={loading}
-					class="absolute right-3 top-2 bottom-2 md:top-2.5 md:bottom-2.5 aspect-square text-white bg-[#007AFF] hover:bg-[#0069D9] rounded-full flex items-center justify-center transition-all disabled:opacity-50 shadow-md active:scale-95"
-					aria-label={m.search_button()}
-				>
-					{#if loading}
-						<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-					{:else}
-						<Search class="h-5 w-5" strokeWidth={2.5} />
-					{/if}
-				</button>
+					oninput={handleAddressInput}
+					onkeydown={handleKeyDown}
+					onfocus={() => { if (suggestions.length > 0) showSuggestions = true; }}
+					onblur={() => {
+						// Delay hiding to allow click on suggestion
+						setTimeout(() => { showSuggestions = false; }, 200);
+					}}
+							placeholder={m.search_placeholder()}
+							class="w-full h-[52px] md:h-[60px] pl-6 pr-14 rounded-[18px] text-[17px] bg-[rgba(255,255,255,0.8)] backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.08)] focus:border-[#007AFF] focus:ring-4 focus:ring-[#007AFF]/10 transition-all placeholder:text-[#86868B] text-[#1D1D1F]"
+							autocomplete="off"
+						/>
+						{#if isFetchingSuggestions && !loading}
+							<div class="absolute right-14 top-1/2 -translate-y-1/2 pointer-events-none">
+								<svg class="animate-spin h-5 w-5 text-[#007AFF]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+							</div>
+						{/if}
+						<button
+							onclick={() => searchAddress()}
+							disabled={loading}
+							class="absolute right-3 top-2 bottom-2 md:top-2.5 md:bottom-2.5 aspect-square text-white bg-[#007AFF] hover:bg-[#0069D9] rounded-full flex items-center justify-center transition-all disabled:opacity-50 shadow-md active:scale-95"
+							aria-label={m.search_button()}
+						>
+							{#if loading}
+								<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+							{:else}
+								<Search class="h-5 w-5" strokeWidth={2.5} />
+							{/if}
+						</button>
+						
+						<!-- Suggestions Dropdown -->
+						{#if (showSuggestions && suggestions.length > 0) || isFetchingSuggestions}
+							<div class="absolute top-full left-0 right-0 mt-2 bg-white rounded-[18px] shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-[rgba(0,0,0,0.08)] overflow-hidden z-50 max-h-[300px] overflow-y-auto">
+								{#if isFetchingSuggestions}
+									<div class="px-6 py-4 text-center">
+										<div class="flex items-center justify-center gap-2 text-sm text-[#86868B]">
+											<svg class="animate-spin h-4 w-4 text-[#007AFF]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+											<span>Recherche d'adresses...</span>
+										</div>
+									</div>
+								{/if}
+								{#if suggestions.length > 0}
+									{#each suggestions as suggestion (suggestion.placeId)}
+										{@const index = suggestions.indexOf(suggestion)}
+										<button
+											type="button"
+											onclick={() => selectSuggestion(suggestion)}
+											onmousedown={(e) => e.preventDefault()}
+											class="w-full text-left px-6 py-4 hover:bg-[#F5F5F7] transition-colors border-b border-[rgba(0,0,0,0.06)] last:border-0 {selectedSuggestionIndex === index ? 'bg-[#F5F5F7]' : ''}"
+										>
+											<div class="flex items-start gap-3">
+												<MapPin class="w-4 h-4 text-[#86868B] mt-0.5 shrink-0" strokeWidth={2} />
+												<div class="flex-1 min-w-0">
+													<p class="font-medium text-[#1D1D1F] text-[15px] truncate">
+														{suggestion.components.road && suggestion.components.houseNumber 
+															? `${suggestion.components.houseNumber} ${suggestion.components.road}`
+															: suggestion.components.road || suggestion.components.neighbourhood || suggestion.displayName.split(',')[0]}
+													</p>
+													<p class="text-xs text-[#86868B] mt-0.5 line-clamp-1">
+														{suggestion.components.district || suggestion.components.neighbourhood || ''}
+														{#if suggestion.components.district && suggestion.components.city}
+															, {suggestion.components.city}
+														{:else if suggestion.components.city}
+															{suggestion.components.city}
+														{/if}
+														{#if suggestion.components.postcode}
+															{suggestion.components.postcode}
+														{/if}
+													</p>
+												</div>
+											</div>
+										</button>
+									{/each}
+								{/if}
+							</div>
+						{/if}
+						
+						<!-- Error Message -->
+						{#if addressValidationError}
+							<div class="mt-4 w-full animate-fade-in">
+								<div class="bg-[#FF3B30]/10 border border-[#FF3B30]/20 text-[#FF3B30] px-4 py-3 rounded-[14px] flex items-start gap-3 backdrop-blur-md">
+									<AlertCircle class="stroke-current shrink-0 h-5 w-5 mt-0.5" strokeWidth={1.5} />
+									<span class="text-sm">{addressValidationError}</span>
+								</div>
+							</div>
+						{/if}
+					</div>
+				</div>
 			</div>
 
 			<!-- Social Proof / Quick Filters -->
@@ -435,7 +793,7 @@
 			</div>
 			
 			{#if error}
-				<div class="mt-6 w-full animate-fade-in">
+				<div class="mt-6 w-full animate-fade-in max-w-6xl mx-auto px-4">
 					<div class="bg-[#FF3B30]/10 border border-[#FF3B30]/20 text-[#FF3B30] px-4 py-3 rounded-[14px] flex items-start gap-3 backdrop-blur-md">
 						<AlertCircle class="stroke-current shrink-0 h-5 w-5 mt-0.5" strokeWidth={1.5} />
 						<span>{error}</span>
@@ -744,21 +1102,24 @@
 								</div>
 							</div>
 
-							<!-- Bike: YouBike Station -->
-							{#if convenienceData.youbikeStations > 0}
+							<!-- Bike: YouBike Station (Nearest Only) -->
+							{#if convenienceData.nearestYoubikeName && convenienceData.nearestYoubikeDistance !== undefined}
 								<div class="flex items-center justify-between py-3 border-b border-[rgba(0,0,0,0.06)] last:border-0">
 									<div class="flex items-center gap-3">
 										<div class="p-2 rounded-lg bg-[#F5F5F7] text-[#34C759]">
 											<Bike size={18} strokeWidth={1.5} />
 										</div>
 										<div>
-											<p class="font-medium text-[#1D1D1F]">{m.poi_youbike_label()}</p>
-											<p class="text-xs text-[#86868B]">Xinyi/Jianguo</p>
+											<p class="font-medium text-[#1D1D1F]">
+												{formatYouBikeName(convenienceData.nearestYoubikeName)}
+											</p>
 										</div>
 									</div>
 									<div class="text-right">
-										<Badge variant="secondary" class="bg-[#F5F5F7] text-[#1D1D1F]">2 min</Badge>
-										<p class="text-[10px] text-[#86868B] mt-1">{convenienceData.nearestYoubikeDistance || 150}m</p>
+										<Badge variant="secondary" class="bg-[#F5F5F7] text-[#1D1D1F]">
+											{Math.ceil((convenienceData.nearestYoubikeDistance || 150) / 80)} min
+										</Badge>
+										<p class="text-[10px] text-[#86868B] mt-1">{convenienceData.nearestYoubikeDistance}m</p>
 									</div>
 								</div>
 							{/if}
