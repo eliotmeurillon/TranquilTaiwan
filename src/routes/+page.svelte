@@ -495,6 +495,12 @@
 		return m.score_poor();
 	};
 
+	// Truncate address with ellipsis
+	const truncateAddress = (address: string, maxLength: number = 60): string => {
+		if (!address || address.length <= maxLength) return address;
+		return address.substring(0, maxLength).trim() + '...';
+	};
+
 	const getTeaserSummary = (data: ScoreData): string => {
 		const noiseLevel = 
 			data.scores.noise >= 80 ? m.teaser_noise_status_quiet() :
@@ -719,8 +725,8 @@
 			<div class="absolute -bottom-20 left-4 right-4 z-20 max-w-4xl mx-auto">
 				<Card.Root class="rounded-[24px] border border-white/40 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] backdrop-blur-[40px] bg-[rgba(255,255,255,0.85)]">
 					<Card.Header class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 px-6">
-						<div class="space-y-2">
-							<Card.Title class="text-[28px] leading-[1.1] md:text-[34px] font-bold text-[#1D1D1F] tracking-tight">{scoreData.address}</Card.Title>
+						<div class="space-y-2 flex-1 min-w-0">
+							<Card.Title class="text-[28px] leading-[1.1] md:text-[34px] font-bold text-[#1D1D1F] tracking-tight truncate" title={scoreData.address}>{truncateAddress(scoreData.address, 60)}</Card.Title>
 							<div class="flex items-center gap-2 text-[#007AFF] font-medium text-[17px]">
 								<MapPin class="w-4 h-4" strokeWidth={2} />
 								<span>{m.report_env_title()} - {getScoreLabel(scoreData.scores.overall)}</span>

@@ -146,8 +146,11 @@
 			popupAnchor: [0, -24]
 		});
 
+		// Truncate address for popup (max 50 chars)
+		const truncatedAddress = address.length > 50 ? address.substring(0, 50).trim() + '...' : address;
+		
 		L.marker([latitude, longitude], { icon: houseIcon })
-			.bindPopup(`<div class="p-2 text-center font-sans"><strong class="text-[#1D1D1F] text-sm">${address}</strong><br/><span class="text-[#86868B] text-xs">Target Location</span></div>`)
+			.bindPopup(`<div class="p-2 text-center font-sans" style="max-width: 200px;"><strong class="text-[#1D1D1F] text-sm" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${address.replace(/"/g, '&quot;')}">${truncatedAddress.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</strong><br/><span class="text-[#86868B] text-xs">Target Location</span></div>`)
 			.addTo(map)
 			.openPopup();
 
@@ -306,6 +309,14 @@
 	:global(.leaflet-popup-content) {
 		margin: 0;
 		padding: 0;
+	}
+	
+	:global(.leaflet-popup-content strong.truncate) {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		max-width: 100%;
 	}
 	
 	:global(.leaflet-div-icon) {
