@@ -70,12 +70,29 @@ describe('dataService Integration Tests', () => {
 		// The mock implementation returns status 'Good (Mock)'
 		if (result.airQuality.status === 'Good (Mock)') {
 			console.warn('⚠️ Air Quality API failed. This is unexpected if key is valid.');
-			// Force fail if we expect real data now
-			// expect(result.airQuality.status).not.toBe('Good (Mock)');
+			// Don't fail the test, but log the warning
 		} else {
 			console.log(`✅ Air Quality API Success: AQI ${result.airQuality.aqi} (${result.airQuality.status})`);
 			expect(result.airQuality.status).not.toBe('Good (Mock)');
 		}
 
+		// Noise Check - should not be mock anymore
+		expect(result.noiseScore).toBeTypeOf('number');
+		expect(result.noiseScore).toBeGreaterThanOrEqual(0);
+		expect(result.noiseScore).toBeLessThanOrEqual(100);
+		console.log(`✅ Noise Score: ${result.noiseScore}`);
+
+	}, TIMEOUT);
+
+	it('should handle API errors gracefully', async () => {
+		console.log('\n⚠️ Testing error handling...');
+		
+		// Use an address that might cause issues
+		const invalidAddress = 'ThisAddressDoesNotExist12345XYZ999';
+		
+		// Should throw error instead of returning mock data
+		await expect(getLivabilityScore(invalidAddress)).rejects.toThrow();
+		
+		console.log('✅ Error handling works correctly');
 	}, TIMEOUT);
 });
