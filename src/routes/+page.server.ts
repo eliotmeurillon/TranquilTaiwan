@@ -53,11 +53,22 @@ export const load: PageServerLoad = async ({ url, fetch, setHeaders }) => {
 		const response = await fetch(`/api/score?address=${encodeURIComponent(address)}`);
 
 		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({ message: 'Failed to calculate score' }));
+			let errorMessage = 'Failed to load score data';
+			try {
+				const errorData = await response.json();
+				errorMessage = errorData.message || errorData.error || errorMessage;
+			} catch {
+				// If response is not JSON, try to get text
+				try {
+					errorMessage = await response.text() || errorMessage;
+				} catch {
+					// Use default message
+				}
+			}
 			// Return error state instead of throwing to allow client-side error handling
 			return {
 				scoreData: null,
-				error: errorData.message || 'Failed to load score data',
+				error: errorMessage,
 				address,
 				shareMode
 			};

@@ -220,5 +220,13 @@
 	"error_address_not_found_suggestions": "找不到地址。請從建議中選擇地址或嘗試其他搜尋。",
 	"error_address_not_found": "找不到地址。請從建議中選擇地址。",
 	"error_search_failed": "搜尋地址失敗。請再試一次。",
-	"error_calculate_failed": "計算分數失敗。請再試一次。"
+	"error_calculate_failed": "計算分數失敗。請再試一次。",
+	"loading_geocoding": "地理編碼地址中...",
+	"loading_noise": "計算噪音水平...",
+	"loading_air_quality": "取得空氣品質數據...",
+	"loading_safety": "分析安全指標...",
+	"loading_convenience": "檢查便利服務...",
+	"loading_zoning": "分析分區數據...",
+	"loading_calculating": "計算最終分數...",
+	"loading_complete": "完成！"
 }

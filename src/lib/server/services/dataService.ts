@@ -120,25 +120,27 @@ async function getAirQuality(lat: number, lon: number): Promise<{ aqi: number; s
 	}
 }
 
-// Step 3: Noise (Mock)
+// Step 3: Noise (using Overpass API)
 async function calculateNoiseScore(lat: number, lon: number): Promise<number> {
-	// Simulate detection of temples, night markets, etc.
-	// In a real implementation, we would query POIs from Google Places or OSM Overpass API.
+	// Import the real noise data fetcher
+	const { fetchNoiseData } = await import('./dataFetchers');
+	const { calculateNoiseScore: calcScore } = await import('./scoreCalculator');
 	
-	// Deterministic mock based on coordinates to return consistent results for same location
-	const seed = (lat + lon) * 10000;
-	const random = (seed - Math.floor(seed));
-	
-	// Base score 70-90
-	let score = 70 + Math.floor(random * 20);
-	
-	// Simulate "noisy" areas based on some arbitrary coordinate math
-	const isNoisyArea = Math.floor(lat * 100) % 2 === 0;
-	if (isNoisyArea) {
-		score -= 15; // Penalty for simulated noise
+	try {
+		const noiseData = await fetchNoiseData({ latitude: lat, longitude: lon });
+		return calcScore(noiseData);
+	} catch (e) {
+		console.warn('Using mock noise score due to error:', e);
+		// Fallback to deterministic mock
+		const seed = (lat + lon) * 10000;
+		const random = (seed - Math.floor(seed));
+		let score = 70 + Math.floor(random * 20);
+		const isNoisyArea = Math.floor(lat * 100) % 2 === 0;
+		if (isNoisyArea) {
+			score -= 15;
+		}
+		return Math.max(0, Math.min(100, score));
 	}
-
-	return Math.max(0, Math.min(100, score));
 }
 
 // Step 4: Transport (YouBike)

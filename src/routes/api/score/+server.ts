@@ -150,7 +150,8 @@ export const GET: RequestHandler = async ({ url }) => {
 		
 	} catch (err) {
 		console.error('Error calculating score:', err);
-		error(500, 'Failed to calculate score');
+		const errorMessage = err instanceof Error ? err.message : 'Failed to calculate score';
+		error(500, errorMessage);
 	}
 };
 

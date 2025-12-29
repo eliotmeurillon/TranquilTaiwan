@@ -84,6 +84,7 @@
 	// Local UI state
 	let address = $state('');
 	let loading = $state(false);
+	let loadingStep = $state<string | null>(null);
 	let showSuggestions = $state(false);
 	let addressValidationError = $state<string | null>(null);
 	let isFetchingSuggestions = $state(false);
@@ -419,16 +420,42 @@
 			console.error('Geocoding error:', err);
 		}
 
-		// Fallback: navigate with address (old behavior)
+		// Navigate with address and show progress
 		try {
+			// Simulate progress steps
+			const steps = [
+				m.loading_geocoding(),
+				m.loading_noise(),
+				m.loading_air_quality(),
+				m.loading_safety(),
+				m.loading_convenience(),
+				m.loading_zoning(),
+				m.loading_calculating()
+			];
+			
+			let currentStep = 0;
+			const stepInterval = setInterval(() => {
+				if (currentStep < steps.length) {
+					loadingStep = steps[currentStep];
+					currentStep++;
+				}
+			}, 500);
+			
 			await goto(`?address=${encodeURIComponent(targetAddress)}`, {
 				noScroll: false,
 				keepFocus: false,
 				invalidateAll: true
 			});
+			
+			clearInterval(stepInterval);
+			loadingStep = m.loading_complete();
+			setTimeout(() => {
+				loadingStep = null;
+			}, 500);
 		} catch (err) {
 			console.error('Navigation error:', err);
-			addressValidationError = m.error_search_failed();
+			addressValidationError = err instanceof Error ? err.message : m.error_search_failed();
+			loadingStep = null;
 		} finally {
 			loading = false;
 		}
@@ -441,6 +468,25 @@
 		loading = true;
 		
 		try {
+			// Simulate progress steps
+			const steps = [
+				m.loading_geocoding(),
+				m.loading_noise(),
+				m.loading_air_quality(),
+				m.loading_safety(),
+				m.loading_convenience(),
+				m.loading_zoning(),
+				m.loading_calculating()
+			];
+			
+			let currentStep = 0;
+			const stepInterval = setInterval(() => {
+				if (currentStep < steps.length) {
+					loadingStep = steps[currentStep];
+					currentStep++;
+				}
+			}, 500);
+			
 			// Reverse geocode to get address from coordinates
 			const response = await fetch(`/api/score/recalculate`, {
 				method: 'POST',
@@ -449,24 +495,34 @@
 			});
 			
 			if (!response.ok) {
-				throw new Error('Failed to calculate score');
+				const errorData = await response.json().catch(() => ({ message: 'Failed to calculate score' }));
+				throw new Error(errorData.message || 'Failed to calculate score');
 			}
 			
 			const scoreData = await response.json();
 			
-			// Reverse geocode to get address
-			const reverseResponse = await fetch(
-				`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordinates.latitude}&lon=${coordinates.longitude}&addressdetails=1`,
-				{
-					headers: { 'User-Agent': 'TranquilTaiwan/1.0' }
-				}
-			);
-			
+			// Reverse geocode to get address (only in browser)
 			let addressFromCoords = `Lat: ${coordinates.latitude.toFixed(6)}, Lon: ${coordinates.longitude.toFixed(6)}`;
-			if (reverseResponse.ok) {
-				const reverseData = await reverseResponse.json();
-				addressFromCoords = reverseData.display_name || addressFromCoords;
+			if (browser) {
+				try {
+					const reverseResponse = await fetch(
+						`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordinates.latitude}&lon=${coordinates.longitude}&addressdetails=1`,
+						{
+							headers: { 'User-Agent': 'TranquilTaiwan/1.0' }
+						}
+					);
+					
+					if (reverseResponse.ok) {
+						const reverseData = await reverseResponse.json();
+						addressFromCoords = reverseData.display_name || addressFromCoords;
+					}
+				} catch (err) {
+					console.warn('Reverse geocoding failed, using coordinates:', err);
+				}
 			}
+			
+			clearInterval(stepInterval);
+			loadingStep = m.loading_complete();
 			
 			// Navigate with coordinates
 			await goto(`?lat=${coordinates.latitude}&lon=${coordinates.longitude}&address=${encodeURIComponent(addressFromCoords)}`, {
@@ -474,9 +530,15 @@
 				keepFocus: false,
 				invalidateAll: true
 			});
+			
+			setTimeout(() => {
+				loadingStep = null;
+			}, 500);
 		} catch (error) {
 			console.error('Error calculating score:', error);
-			addressValidationError = m.error_calculate_failed();
+			addressValidationError = error instanceof Error ? error.message : m.error_calculate_failed();
+			loadingStep = null;
+		} finally {
 			loading = false;
 		}
 	}
@@ -668,9 +730,18 @@
 						<p class="text-xs">{m.map_instructions_step2()}</p>
 						<p class="text-xs">{m.map_instructions_step3()}</p>
 					</div>
+					
+					<!-- Loading Overlay with Blur (Apple Liquid Glass) -->
+					{#if loading && loadingStep}
+						<div class="absolute inset-0 z-[2000] bg-[rgba(0,0,0,0.4)] backdrop-blur-[40px] saturate-150% rounded-[18px] flex items-center justify-center animate-[backdropFadeIn_0.35s_cubic-bezier(0.4,0,0.2,1)]">
+							<div class="bg-[rgba(255,255,255,0.95)] backdrop-blur-[40px] saturate-180% border-[0.5px] border-[rgba(0,0,0,0.04)] rounded-[24px] px-8 py-6 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14),0_0_1px_rgba(0,0,0,0.06)] flex flex-col items-center gap-4 min-w-[280px] animate-[sheetSlideUp_0.45s_cubic-bezier(0.32,0.72,0,1)]">
+								<div class="animate-spin shrink-0 h-8 w-8 border-[3px] border-[#007AFF] border-t-transparent rounded-full"></div>
+								<span class="font-[600] text-[17px] text-[#1D1D1F] tracking-[-0.41px] text-center leading-[1.47]">{loadingStep}</span>
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
-
 			
 			{#if error}
 				<div class="mt-6 w-full animate-fade-in max-w-6xl mx-auto px-4">
@@ -694,7 +765,7 @@
 	<div class="min-h-screen bg-[#FAFAFA] relative pb-32 font-sans text-[#1D1D1F]">
 		
 		<!-- 1. Map Background (Hero) -->
-		<div class="absolute top-0 left-0 w-full h-[60vh] md:h-[65vh] z-0">
+		<div class="absolute top-0 left-0 w-full h-[60vh] md:h-[65vh] z-0 relative">
 			<LeafletMap
 				latitude={scoreData.coordinates.latitude}
 				longitude={scoreData.coordinates.longitude}
@@ -720,6 +791,16 @@
 				onAirQualityChange={(visible: boolean) => airQualityVisible = visible}
 				onSafetyPointsChange={(visible: boolean) => safetyPointsVisible = visible}
 			/>
+			
+			<!-- Loading Overlay with Blur (Apple Liquid Glass) -->
+			{#if loading && loadingStep}
+				<div class="absolute inset-0 z-[2000] bg-[rgba(0,0,0,0.4)] backdrop-blur-[40px] saturate-150% flex items-center justify-center animate-[backdropFadeIn_0.35s_cubic-bezier(0.4,0,0.2,1)]">
+					<div class="bg-[rgba(255,255,255,0.95)] backdrop-blur-[40px] saturate-180% border-[0.5px] border-[rgba(0,0,0,0.04)] rounded-[24px] px-8 py-6 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14),0_0_1px_rgba(0,0,0,0.06)] flex flex-col items-center gap-4 min-w-[280px] animate-[sheetSlideUp_0.45s_cubic-bezier(0.32,0.72,0,1)]">
+						<div class="animate-spin shrink-0 h-8 w-8 border-[3px] border-[#007AFF] border-t-transparent rounded-full"></div>
+						<span class="font-[600] text-[17px] text-[#1D1D1F] tracking-[-0.41px] text-center leading-[1.47]">{loadingStep}</span>
+					</div>
+				</div>
+			{/if}
 
 			<!-- Floating Score Card (Absolute over map) -->
 			<div class="absolute -bottom-20 left-4 right-4 z-20 max-w-4xl mx-auto">
@@ -771,6 +852,15 @@
 				<LanguageSwitcher />
 			</div>
 		</header>
+		
+		{#if error}
+			<div class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[10000] pointer-events-none animate-[toastSlideDown_0.4s_cubic-bezier(0.32,0.72,0,1)]">
+				<div class="bg-[rgba(255,255,255,0.88)] backdrop-blur-[40px] saturate-180% border-[0.5px] border-[rgba(0,0,0,0.06)] rounded-[16px] px-6 py-4 shadow-[0_16px_48px_rgba(0,0,0,0.18),0_0_1px_rgba(0,0,0,0.08)] flex items-start gap-3 min-w-[320px] max-w-[440px]">
+					<AlertCircle class="stroke-[#FF3B30] shrink-0 h-5 w-5 mt-0.5" strokeWidth={1.5} />
+					<span class="font-[400] text-[17px] text-[#1D1D1F] tracking-[-0.41px] leading-[1.47]">{error}</span>
+				</div>
+			</div>
+		{/if}
 
 		<!-- 3. Spacer -->
 		<div class="h-[60vh] md:h-[65vh] w-full pointer-events-none"></div>

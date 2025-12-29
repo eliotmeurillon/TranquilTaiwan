@@ -220,5 +220,13 @@
 	"error_address_not_found_suggestions": "Address not found. Please select an address from the suggestions or try a different search.",
 	"error_address_not_found": "Address not found. Please select an address from the suggestions.",
 	"error_search_failed": "Failed to search address. Please try again.",
-	"error_calculate_failed": "Failed to calculate score. Please try again."
+	"error_calculate_failed": "Failed to calculate score. Please try again.",
+	"loading_geocoding": "Geocoding address...",
+	"loading_noise": "Calculating noise level...",
+	"loading_air_quality": "Fetching air quality data...",
+	"loading_safety": "Analyzing safety metrics...",
+	"loading_convenience": "Checking convenience services...",
+	"loading_zoning": "Analyzing zoning data...",
+	"loading_calculating": "Calculating final score...",
+	"loading_complete": "Complete!"
 }
