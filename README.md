@@ -32,11 +32,6 @@ Calculates 5 key metrics / 計算 5 項關鍵指標：
 - **Convenience / 便利性**: YouBike stations, public transport, essential services / YouBike 站點、大眾運輸、基本服務
 - **Zoning Risk / 分區風險**: Adjacent industrial/commercial zone analysis / 鄰近工業/商業區分析
 
-### Freemium Model / 免費增值模式
-
-- **Free / 免費版**: Overall livability score and basic metrics / 整體宜居指數和基本指標
-- **Premium / 進階版**: Detailed reports with historical data and comprehensive breakdowns / 包含歷史資料和詳細分析的完整報告
-
 ### Data Sources / 資料來源
 
 Integrates with Taiwan government APIs (OGDL license) / 整合台灣政府 API（OGDL 授權）：
@@ -298,7 +293,6 @@ pnpm test
 - [x] Implement caching for API responses / 實作 API 回應快取
 - [x] Add geocoding service integration / 新增地理編碼服務整合
 - [ ] Integrate additional Taiwan government APIs / 整合更多台灣政府 API
-- [ ] Implement payment processing for premium reports / 實作進階報告的付款處理
 - [ ] Add historical data tracking / 新增歷史資料追蹤
 - [ ] Add more detailed heatmap data from actual monitoring stations / 從實際監測站新增更詳細的熱力圖資料
 - [ ] Implement user authentication / 實作使用者認證
