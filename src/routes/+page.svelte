@@ -648,149 +648,23 @@
 				</p>
 			</div>
 
-			<!-- Map + Search Layout -->
-			<div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+			<!-- Map Layout -->
+			<div class="w-full mb-8">
 				<!-- Interactive Map -->
-				<div class="w-full h-[400px] lg:h-[500px] rounded-[18px] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.08)] relative">
+				<div class="w-full h-[500px] lg:h-[600px] rounded-[18px] overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.08)] relative">
 					<InteractiveMap
 						onPinPlaced={handlePinPlaced}
 						searchResult={mapSearchResult}
 					/>
 					<div class="absolute bottom-4 left-4 right-4 z-[1000] bg-white/90 backdrop-blur-md rounded-[12px] px-4 py-2 text-sm text-[#86868B] border border-[rgba(0,0,0,0.08)]">
 						<p class="font-medium text-[#1D1D1F] mb-1">💡 Comment utiliser :</p>
-						<p class="text-xs">1. Recherchez une rue ou un quartier</p>
+						<p class="text-xs">1. Naviguez sur la carte</p>
 						<p class="text-xs">2. Cliquez sur la carte pour placer un pin</p>
 						<p class="text-xs">3. Le score sera calculé à cet emplacement</p>
 					</div>
 				</div>
-
-				<!-- Search Component with Autocomplete -->
-				<div class="flex flex-col justify-center space-y-4">
-					<div class="w-full relative group z-20">
-						<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-							<!-- Helper icon if needed -->
-						</div>
-						<input
-					type="text"
-					bind:value={address}
-					oninput={handleAddressInput}
-					onkeydown={handleKeyDown}
-					onfocus={() => { if (suggestions.length > 0) showSuggestions = true; }}
-					onblur={() => {
-						// Delay hiding to allow click on suggestion
-						setTimeout(() => { showSuggestions = false; }, 200);
-					}}
-							placeholder={m.search_placeholder()}
-							class="w-full h-[52px] md:h-[60px] pl-6 pr-14 rounded-[18px] text-[17px] bg-[rgba(255,255,255,0.8)] backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-[rgba(0,0,0,0.08)] focus:border-[#007AFF] focus:ring-4 focus:ring-[#007AFF]/10 transition-all placeholder:text-[#86868B] text-[#1D1D1F]"
-							autocomplete="off"
-						/>
-						{#if isFetchingSuggestions && !loading}
-							<div class="absolute right-14 top-1/2 -translate-y-1/2 pointer-events-none">
-								<svg class="animate-spin h-5 w-5 text-[#007AFF]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-								</svg>
-							</div>
-						{/if}
-						<button
-							onclick={() => searchAddress()}
-							disabled={loading}
-							class="absolute right-3 top-2 bottom-2 md:top-2.5 md:bottom-2.5 aspect-square text-white bg-[#007AFF] hover:bg-[#0069D9] rounded-full flex items-center justify-center transition-all disabled:opacity-50 shadow-md active:scale-95"
-							aria-label={m.search_button()}
-						>
-							{#if loading}
-								<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-								</svg>
-							{:else}
-								<Search class="h-5 w-5" strokeWidth={2.5} />
-							{/if}
-						</button>
-						
-						<!-- Suggestions Dropdown -->
-						{#if (showSuggestions && suggestions.length > 0) || isFetchingSuggestions}
-							<div class="absolute top-full left-0 right-0 mt-2 bg-white rounded-[18px] shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-[rgba(0,0,0,0.08)] overflow-hidden z-50 max-h-[300px] overflow-y-auto">
-								{#if isFetchingSuggestions}
-									<div class="px-6 py-4 text-center">
-										<div class="flex items-center justify-center gap-2 text-sm text-[#86868B]">
-											<svg class="animate-spin h-4 w-4 text-[#007AFF]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-											</svg>
-											<span>Recherche d'adresses...</span>
-										</div>
-									</div>
-								{/if}
-								{#if suggestions.length > 0}
-									{#each suggestions as suggestion (suggestion.placeId)}
-										{@const index = suggestions.indexOf(suggestion)}
-										<button
-											type="button"
-											onclick={() => selectSuggestion(suggestion)}
-											onmousedown={(e) => e.preventDefault()}
-											class="w-full text-left px-6 py-4 hover:bg-[#F5F5F7] transition-colors border-b border-[rgba(0,0,0,0.06)] last:border-0 {selectedSuggestionIndex === index ? 'bg-[#F5F5F7]' : ''}"
-										>
-											<div class="flex items-start gap-3">
-												<MapPin class="w-4 h-4 text-[#86868B] mt-0.5 shrink-0" strokeWidth={2} />
-												<div class="flex-1 min-w-0">
-													<p class="font-medium text-[#1D1D1F] text-[15px] truncate">
-														{suggestion.components.road && suggestion.components.houseNumber 
-															? `${suggestion.components.houseNumber} ${suggestion.components.road}`
-															: suggestion.components.road || suggestion.components.neighbourhood || suggestion.displayName.split(',')[0]}
-													</p>
-													<p class="text-xs text-[#86868B] mt-0.5 line-clamp-1">
-														{suggestion.components.district || suggestion.components.neighbourhood || ''}
-														{#if suggestion.components.district && suggestion.components.city}
-															, {suggestion.components.city}
-														{:else if suggestion.components.city}
-															{suggestion.components.city}
-														{/if}
-														{#if suggestion.components.postcode}
-															{suggestion.components.postcode}
-														{/if}
-													</p>
-												</div>
-											</div>
-										</button>
-									{/each}
-								{/if}
-							</div>
-						{/if}
-						
-						<!-- Error Message -->
-						{#if addressValidationError}
-							<div class="mt-4 w-full animate-fade-in">
-								<div class="bg-[#FF3B30]/10 border border-[#FF3B30]/20 text-[#FF3B30] px-4 py-3 rounded-[14px] flex items-start gap-3 backdrop-blur-md">
-									<AlertCircle class="stroke-current shrink-0 h-5 w-5 mt-0.5" strokeWidth={1.5} />
-									<span class="text-sm">{addressValidationError}</span>
-								</div>
-							</div>
-						{/if}
-					</div>
-				</div>
 			</div>
 
-			<!-- Social Proof / Quick Filters -->
-			<div class="mt-8 text-center w-full">
-				<p class="text-[13px] font-semibold text-[#86868B] uppercase tracking-wide mb-4">
-					{m.landing_social_proof()}
-				</p>
-				<div class="flex flex-wrap justify-center gap-3 mt-4">
-					<button onclick={() => searchAddress(m.landing_example_1())} class="bg-white/80 border border-[rgba(0,0,0,0.08)] text-[#6E6E73] shadow-sm hover:bg-white hover:border-[#007AFF]/50 hover:text-[#007AFF] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 rounded-full px-5 py-2 text-[15px] font-medium flex items-center backdrop-blur-md">
-						<MapPin class="w-3.5 h-3.5 mr-2 inline opacity-70" strokeWidth={2} />
-						{m.landing_example_1()}
-					</button>
-					<button onclick={() => searchAddress(m.landing_example_2())} class="bg-white/80 border border-[rgba(0,0,0,0.08)] text-[#6E6E73] shadow-sm hover:bg-white hover:border-[#007AFF]/50 hover:text-[#007AFF] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 rounded-full px-5 py-2 text-[15px] font-medium flex items-center backdrop-blur-md">
-						<MapPin class="w-3.5 h-3.5 mr-2 inline opacity-70" strokeWidth={2} />
-						{m.landing_example_2()}
-					</button>
-					<button onclick={() => searchAddress(m.landing_example_3())} class="bg-white/80 border border-[rgba(0,0,0,0.08)] text-[#6E6E73] shadow-sm hover:bg-white hover:border-[#007AFF]/50 hover:text-[#007AFF] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 rounded-full px-5 py-2 text-[15px] font-medium flex items-center backdrop-blur-md">
-						<MapPin class="w-3.5 h-3.5 mr-2 inline opacity-70" strokeWidth={2} />
-						{m.landing_example_3()}
-					</button>
-				</div>
-			</div>
 			
 			{#if error}
 				<div class="mt-6 w-full animate-fade-in max-w-6xl mx-auto px-4">
