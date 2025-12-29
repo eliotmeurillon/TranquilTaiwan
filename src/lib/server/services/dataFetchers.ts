@@ -167,12 +167,26 @@ async function fetchWithRetry(
 			}
 			
 			if (!response.ok && response.status !== 429 && response.status !== 504) {
+				// Non-retryable HTTP errors (400, 401, 403, 404, 500, etc.) should fail immediately
 				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 			}
 			
 			return response;
 		} catch (error) {
 			lastError = error instanceof Error ? error : new Error(String(error));
+			
+			// Check if this is a non-retryable HTTP error (has status code in message)
+			// These should fail immediately without retries
+			if (error instanceof Error && error.message.startsWith('HTTP ')) {
+				const statusMatch = error.message.match(/HTTP (\d+):/);
+				if (statusMatch) {
+					const status = parseInt(statusMatch[1], 10);
+					// Only retry on 429 and 504, fail immediately on others
+					if (status !== 429 && status !== 504) {
+						throw error; // Don't retry non-retryable HTTP errors
+					}
+				}
+			}
 			
 			// If it's an abort (timeout), treat it like a 504
 			if (error instanceof Error && error.name === 'AbortError') {
@@ -185,6 +199,7 @@ async function fetchWithRetry(
 				throw new Error('Request timeout after retries');
 			}
 			
+			// For network errors and retryable HTTP errors, retry with backoff
 			if (attempt < maxRetries) {
 				const delay = baseDelay * Math.pow(2, attempt);
 				await new Promise(resolve => setTimeout(resolve, delay));

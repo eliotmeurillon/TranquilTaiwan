@@ -68,15 +68,15 @@ async function getCoordinates(address: string): Promise<Coordinates> {
 
 // Step 2: Air Quality (MOENV)
 async function getAirQuality(lat: number, lon: number): Promise<{ aqi: number; status: string }> {
-	const API_KEY = env.MOENV_API_KEY || 'PLACEHOLDER_KEY'; // Use env var in production
-	// Using the endpoint provided. Note: This often requires a valid key. 
-	// Fallback to mock if fetch fails or key is invalid.
+	const API_KEY = env.MOENV_API_KEY;
+	if (!API_KEY) {
+		throw new Error('MOENV_API_KEY is not configured');
+	}
 	const url = `https://data.moenv.gov.tw/api/v2/aqx_p_432?api_key=${API_KEY}&limit=1000&sort=ImportDate desc&format=json`;
 
 	try {
 		const response = await fetch(url);
 		
-		// If the API call fails (e.g., invalid key), we'll throw to trigger the catch block which returns mock data
 		if (!response.ok) {
 			throw new Error(`Air Quality API failed: ${response.statusText}`);
 		}
@@ -111,12 +111,11 @@ async function getAirQuality(lat: number, lon: number): Promise<{ aqi: number; s
 		throw new Error('No nearby station found');
 
 	} catch (e) {
-		console.warn('Using mock air quality data due to API error:', e);
-		// Mock data fallback
-		return {
-			aqi: 42,
-			status: 'Good (Mock)'
-		};
+		console.error('Air Quality API error:', e);
+		if (e instanceof Error) {
+			throw e;
+		}
+		throw new Error('Failed to fetch air quality data');
 	}
 }
 
@@ -130,16 +129,11 @@ async function calculateNoiseScore(lat: number, lon: number): Promise<number> {
 		const noiseData = await fetchNoiseData({ latitude: lat, longitude: lon });
 		return calcScore(noiseData);
 	} catch (e) {
-		console.warn('Using mock noise score due to error:', e);
-		// Fallback to deterministic mock
-		const seed = (lat + lon) * 10000;
-		const random = (seed - Math.floor(seed));
-		let score = 70 + Math.floor(random * 20);
-		const isNoisyArea = Math.floor(lat * 100) % 2 === 0;
-		if (isNoisyArea) {
-			score -= 15;
+		console.error('Noise score calculation error:', e);
+		if (e instanceof Error) {
+			throw e;
 		}
-		return Math.max(0, Math.min(100, score));
+		throw new Error('Failed to calculate noise score');
 	}
 }
 
@@ -195,11 +189,11 @@ async function getTransportInfo(lat: number, lon: number): Promise<{ nearestYouB
 		throw new Error('No nearby YouBike station found');
 
 	} catch (e) {
-		console.warn('Using mock transport data due to API error:', e);
-		return {
-			nearestYouBike: 'YouBike Station (Mock)',
-			distance: 350
-		};
+		console.error('Transport API error:', e);
+		if (e instanceof Error) {
+			throw e;
+		}
+		throw new Error('Failed to fetch transport data');
 	}
 }
 
